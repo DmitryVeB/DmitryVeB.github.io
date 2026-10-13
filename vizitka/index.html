@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мария Сергеевна — репетитор по математике</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f2ec;
+    --paper: #fffdf9;
+    --ink: #24303d;
+    --muted: #5f6b78;
+    --blue: #4a7eaa;
+    --blue-d: #3d6b91;
+    --gold: #b8933a;
+    --line: #e2dccf;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--ink); font: 17px/1.6 "Golos Text", system-ui, sans-serif; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  h1, h2, h3 { font-family: Lora, Georgia, serif; line-height: 1.2; }
+  h2 { font-size: clamp(28px, 4vw, 38px); margin-bottom: 28px; }
+  section { padding: 72px 0; }
+
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; }
+  .logo { font-family: Lora, serif; font-weight: 700; font-size: 21px; }
+  .logo span { color: var(--blue); }
+  .menu { display: flex; gap: 28px; font-size: 15px; }
+  .menu a { color: var(--muted); text-decoration: none; }
+  .menu a:hover { color: var(--blue); }
+
+  .btn {
+    display: inline-block; font: inherit; font-weight: 600; font-size: 16px;
+    padding: 15px 28px; border-radius: 12px; border: 0; cursor: pointer;
+    background: var(--blue); color: #fff; text-decoration: none; transition: background .15s;
+  }
+  .btn:hover { background: var(--blue-d); }
+  .btn.ghost { background: transparent; color: var(--blue); border: 2px solid var(--blue); padding: 13px 26px; }
+  .btn.ghost:hover { background: rgba(74,126,170,.08); }
+
+  .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; padding: 40px 0 64px; }
+  .badge { display: inline-block; font-size: 14px; font-weight: 500; color: var(--blue); background: rgba(74,126,170,.12); padding: 6px 14px; border-radius: 99px; }
+  .hero h1 { font-size: clamp(36px, 5.2vw, 58px); margin: 18px 0 18px; }
+  .hero h1 em { font-style: normal; color: var(--blue); }
+  .hero p { color: var(--muted); font-size: 19px; max-width: 520px; }
+  .hero .actions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 30px; }
+  .stats { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 32px; margin-top: 40px; }
+  .stats b { display: block; font-family: Lora, serif; font-size: 34px; color: var(--ink); }
+  .stats span { font-size: 14px; color: var(--muted); }
+  .art { background: var(--paper); border: 1px solid var(--line); border-radius: 28px; padding: 18px; box-shadow: 0 20px 50px rgba(36,48,61,.08); }
+  .art svg { display: block; width: 100%; height: auto; }
+
+  .about { background: var(--paper); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .about-in { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .about p { color: var(--muted); margin-bottom: 14px; }
+  .facts { list-style: none; display: grid; gap: 14px; }
+  .facts li { display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; background: var(--bg); border-radius: 14px; }
+  .facts .ic { flex: none; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: rgba(74,126,170,.14); color: var(--blue); font-weight: 700; font-family: Lora, serif; font-size: 18px; }
+  .facts b { display: block; font-weight: 600; }
+  .facts span { font-size: 15px; color: var(--muted); }
+
+  .prices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .price-card { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 28px 26px; display: flex; flex-direction: column; }
+  .price-card.main { border: 2px solid var(--blue); position: relative; }
+  .price-card.main::before { content: "Чаще всего выбирают"; position: absolute; top: -13px; left: 24px; background: var(--blue); color: #fff; font-size: 13px; font-weight: 600; padding: 3px 12px; border-radius: 99px; }
+  .price-card h3 { font-size: 22px; margin-bottom: 6px; }
+  .price-card .who { font-size: 15px; color: var(--muted); }
+  .price-card .sum { font-family: Lora, serif; font-size: 36px; font-weight: 700; margin: 18px 0 4px; }
+  .price-card .sum small { font-family: "Golos Text", sans-serif; font-size: 15px; font-weight: 400; color: var(--muted); }
+  .price-card ul { list-style: none; margin: 14px 0 24px; flex: 1; }
+  .price-card li { font-size: 15px; padding: 6px 0 6px 26px; position: relative; color: var(--ink); }
+  .price-card li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 12px; height: 7px; border-left: 2px solid #4a9e6a; border-bottom: 2px solid #4a9e6a; transform: rotate(-45deg); }
+  .price-card .btn { text-align: center; }
+
+  .reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .review { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 26px; }
+  .review .stars { color: var(--gold); letter-spacing: 3px; font-size: 18px; }
+  .review p { margin: 12px 0 18px; font-size: 16px; }
+  .review .who { display: flex; align-items: center; gap: 12px; font-size: 15px; }
+  .review .ava { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 600; }
+  .review .who span { color: var(--muted); display: block; font-size: 14px; }
+
+  .cta { background: var(--ink); color: #eef2f6; border-radius: 28px; padding: 56px 48px; display: flex; justify-content: space-between; align-items: center; gap: 32px; flex-wrap: wrap; }
+  .cta h2 { margin-bottom: 10px; color: #fff; }
+  .cta p { color: #b9c4cf; max-width: 560px; }
+  .cta .btn { background: var(--gold); color: #1d1a12; }
+  .cta .btn:hover { background: #a6832f; }
+  footer { text-align: center; color: var(--muted); font-size: 14px; padding: 36px 0 44px; }
+
+  dialog { width: min(440px, calc(100% - 32px)); margin: auto; border: 0; border-radius: 22px; padding: 30px 26px; background: var(--paper); color: var(--ink); }
+  dialog::backdrop { background: rgba(20,28,38,.55); }
+  dialog h3 { font-size: 24px; margin-bottom: 8px; }
+  dialog p { color: var(--muted); font-size: 15px; margin-bottom: 18px; }
+  .opts { display: grid; gap: 10px; margin-bottom: 20px; }
+  .opts label { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; font-size: 16px; }
+  .opts input { accent-color: var(--blue); width: 18px; height: 18px; }
+  dialog .btn { width: 100%; }
+  .done { text-align: center; }
+  .done .big { font-size: 46px; color: #4a9e6a; font-family: Lora, serif; }
+
+  @media (max-width: 900px) {
+    .hero, .about-in { grid-template-columns: 1fr; }
+    .prices, .reviews { grid-template-columns: 1fr; }
+    .art { max-width: 460px; }
+    .menu { display: none; }
+    section { padding: 52px 0; }
+    .cta { padding: 36px 24px; }
+  }
+  @media (max-width: 420px) {
+    .wrap { padding: 0 16px; }
+    nav .btn { padding: 11px 14px; font-size: 14px; }
+    .stats { gap: 16px; }
+    .stats b { font-size: 28px; }
+    .hero .actions .btn { width: 100%; text-align: center; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="logo">Мария <span>Сергеевна</span></div>
+    <div class="menu">
+      <a href="#about">О себе</a><a href="#price">Услуги и цены</a><a href="#reviews">Отзывы</a>
+    </div>
+    <button class="btn" data-open>Записаться</button>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <span class="badge">Репетитор по математике · 5–11 класс</span>
+      <h1>Математика без страха — <em>понятно</em> и по шагам</h1>
+      <p>Помогу Вашему ребёнку закрыть пробелы, полюбить задачи и спокойно подготовиться к ОГЭ и ЕГЭ. Занятия онлайн, в удобное для Вас время.</p>
+      <div class="actions">
+        <button class="btn" data-open>Записаться на пробное занятие</button>
+        <a class="btn ghost" href="#price">Смотреть цены</a>
+      </div>
+      <div class="stats">
+        <div><b>12 лет</b><span>преподаю математику</span></div>
+        <div><b>140+</b><span>учеников подготовлено</span></div>
+        <div><b>4,9</b><span>средняя оценка занятий</span></div>
+      </div>
+    </div>
+    <div class="art" aria-hidden="true">
+      <svg viewBox="0 0 400 340" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M20 0H0V20" fill="none" stroke="#e6e0d3" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect width="400" height="340" rx="16" fill="url(#grid)"/>
+        <line x1="40" y1="290" x2="370" y2="290" stroke="#24303d" stroke-width="2"/>
+        <line x1="60" y1="310" x2="60" y2="30" stroke="#24303d" stroke-width="2"/>
+        <path d="M370 290l-10-5v10zM60 30l-5 10h10z" fill="#24303d"/>
+        <path d="M70 280 Q 140 40 210 160 T 360 60" fill="none" stroke="#4a7eaa" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="210" cy="160" r="7" fill="#b8933a"/>
+        <circle cx="140" cy="128" r="7" fill="#4a7eaa"/>
+        <polygon points="250,270 330,270 290,200" fill="rgba(74,126,170,.15)" stroke="#4a7eaa" stroke-width="2"/>
+        <circle cx="120" cy="230" r="34" fill="rgba(184,147,58,.14)" stroke="#b8933a" stroke-width="2"/>
+        <text x="235" y="80" font-family="Lora, serif" font-size="26" fill="#24303d" font-style="italic">y = x³ − 3x</text>
+        <text x="96" y="236" font-family="Lora, serif" font-size="20" fill="#8a6c22">πr²</text>
+        <text x="268" y="262" font-family="Lora, serif" font-size="18" fill="#3d6b91">a² + b²</text>
+        <text x="300" y="320" font-family="Golos Text, sans-serif" font-size="16" fill="#5f6b78">x</text>
+        <text x="40" y="44" font-family="Golos Text, sans-serif" font-size="16" fill="#5f6b78">y</text>
+      </svg>
+    </div>
+  </header>
+</div>
+
+<section class="about" id="about">
+  <div class="wrap about-in">
+    <div>
+      <h2>О себе</h2>
+      <p>Меня зовут Мария Сергеевна. Я учитель математики с педагогическим образованием и двенадцатилетним опытом работы в школе и с учениками индивидуально.</p>
+      <p>На занятиях мы не зубрим формулы, а разбираемся, откуда они берутся. Я объясняю на понятных примерах, даю домашние задания по силам и регулярно рассказываю Вам о прогрессе ребёнка.</p>
+      <p>Главная цель — чтобы ученик перестал бояться математики и начал решать задачи уверенно и самостоятельно.</p>
+    </div>
+    <ul class="facts">
+      <li><div class="ic">1</div><div><b>Первое занятие — знакомство</b><span>Определю уровень и составлю план обучения под Вашу цель</span></div></li>
+      <li><div class="ic">2</div><div><b>Индивидуальная программа</b><span>Темп и материалы подбираю под конкретного ученика</span></div></li>
+      <li><div class="ic">3</div><div><b>Отчёт после каждого месяца</b><span>Вы всегда знаете, что изучили и над чем работаем дальше</span></div></li>
+      <li><div class="ic">4</div><div><b>Онлайн-доска и записи уроков</b><span>Можно пересмотреть объяснение перед контрольной</span></div></li>
+    </ul>
+  </div>
+</section>
+
+<section id="price">
+  <div class="wrap">
+    <h2>Услуги и цены</h2>
+    <div class="prices">
+      <div class="price-card">
+        <h3>Школьная программа</h3>
+        <div class="who">5–9 класс</div>
+        <div class="sum">1 500 ₽ <small>/ 60 минут</small></div>
+        <ul><li>Разбор сложных тем</li><li>Помощь с домашними заданиями</li><li>Подготовка к контрольным</li></ul>
+        <button class="btn ghost" data-open>Записаться</button>
+      </div>
+      <div class="price-card main">
+        <h3>Подготовка к ОГЭ</h3>
+        <div class="who">9 класс</div>
+        <div class="sum">1 800 ₽ <small>/ 60 минут</small></div>
+        <ul><li>Все задания первой и второй части</li><li>Пробные экзамены раз в месяц</li><li>Разбор типичных ошибок</li></ul>
+        <button class="btn" data-open>Записаться</button>
+      </div>
+      <div class="price-card">
+        <h3>Подготовка к ЕГЭ</h3>
+        <div class="who">10–11 класс, профиль и база</div>
+        <div class="sum">2 200 ₽ <small>/ 90 минут</small></div>
+        <ul><li>Задачи с развёрнутым ответом</li><li>Стратегия на экзамене</li><li>Сборник материалов в подарок</li></ul>
+        <button class="btn ghost" data-open>Записаться</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="reviews" style="padding-top:0">
+  <div class="wrap">
+    <h2>Отзывы родителей</h2>
+    <div class="reviews">
+      <div class="review">
+        <div class="stars">★★★★★</div>
+        <p>«За полгода сын поднялся с тройки до уверенной пятёрки. Наконец-то перестал бояться дробей и уравнений».</p>
+        <div class="who"><div class="ava" style="background:#4a7eaa">А</div><div>Анна<span>мама ученика 7 класса</span></div></div>
+      </div>
+      <div class="review">
+        <div class="stars">★★★★★</div>
+        <p>«Дочь сдала ОГЭ на пятёрку. Очень понравилось, что после каждого месяца мы получали понятный отчёт».</p>
+        <div class="who"><div class="ava" style="background:#7a67b8">О</div><div>Ольга<span>мама выпускницы 9 класса</span></div></div>
+      </div>
+      <div class="review">
+        <div class="stars">★★★★★</div>
+        <p>«Готовился к профильному ЕГЭ с нуля по второй части. Объясняет спокойно и очень понятно, результат — 82 балла».</p>
+        <div class="who"><div class="ava" style="background:#4a9e6a">Д</div><div>Дмитрий<span>выпускник 11 класса</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="cta">
+    <div>
+      <h2>Первое занятие — бесплатно</h2>
+      <p>Познакомимся, проверим уровень знаний и составим план. Это ни к чему Вас не обязывает.</p>
+    </div>
+    <button class="btn" data-open>Записаться на пробное занятие</button>
+  </div>
+  <footer>Мария Сергеевна · репетитор по математике · занятия онлайн</footer>
+</div>
+
+<dialog id="dlg">
+  <div id="step1">
+    <h3>Пробное занятие</h3>
+    <p>Выберите, что Вам ближе, — я подготовлю занятие под Вашу цель.</p>
+    <div class="opts">
+      <label><input type="radio" name="goal" checked> Подтянуть школьную программу</label>
+      <label><input type="radio" name="goal"> Подготовка к ОГЭ</label>
+      <label><input type="radio" name="goal"> Подготовка к ЕГЭ</label>
+    </div>
+    <button class="btn" id="send">Записаться</button>
+  </div>
+  <div id="step2" class="done" hidden>
+    <div class="big">✓</div>
+    <h3>Заявка принята</h3>
+    <p>Спасибо! Я свяжусь с Вами в ближайшее время, чтобы выбрать удобный день.</p>
+    <button class="btn" data-close>Закрыть</button>
+  </div>
+</dialog>
+
+<script>
+  const dlg = document.getElementById("dlg");
+  document.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => {
+    document.getElementById("step1").hidden = false;
+    document.getElementById("step2").hidden = true;
+    dlg.showModal();
+  }));
+  document.getElementById("send").addEventListener("click", () => {
+    document.getElementById("step1").hidden = true;
+    document.getElementById("step2").hidden = false;
+  });
+  dlg.addEventListener("click", e => {
+    const r = dlg.getBoundingClientRect();
+    const outside = e.target === dlg && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom);
+    if (outside || e.target.hasAttribute("data-close")) dlg.close();
+  });
+</script>
+</body>
+</html>

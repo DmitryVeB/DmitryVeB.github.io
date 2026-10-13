@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Цветочная мастерская «Пион и шалфей»</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f0ea;
+    --card: #fffcf8;
+    --ink: #3a2f2f;
+    --muted: #7d6e6b;
+    --rose: #a8646f;
+    --rose-d: #91535e;
+    --sage: #6f8f72;
+    --line: #eadfd5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font: 16px/1.55 Manrope, system-ui, sans-serif; }
+  body.has-bar { padding-bottom: 96px; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; border-bottom: 1px solid var(--line); }
+  .logo { font-family: "Cormorant Garamond", serif; font-size: 28px; font-weight: 700; }
+  .logo i { color: var(--rose); }
+  .nav-note { font-size: 14px; color: var(--muted); }
+
+  .hero { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 24px; padding: 44px 0 32px; }
+  .hero h1 { font-family: "Cormorant Garamond", serif; font-size: clamp(38px, 5.4vw, 60px); line-height: 1.05; font-weight: 600; }
+  .hero h1 i { color: var(--rose); }
+  .hero p { color: var(--muted); margin-top: 12px; max-width: 520px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chips span { font-size: 14px; padding: 8px 14px; border-radius: 99px; background: #efe5dc; color: var(--ink); }
+
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding-bottom: 48px; }
+  .card { background: var(--card); border-radius: 22px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 6px 24px rgba(90,60,55,.06); transition: transform .2s; }
+  .card:hover { transform: translateY(-4px); }
+  .card.in { outline: 2px solid var(--sage); }
+  .pic { height: 168px; display: grid; place-items: center; font-size: 76px; position: relative; }
+  .pic small { position: absolute; top: 12px; left: 12px; font-size: 13px; font-weight: 600; background: rgba(255,255,255,.8); padding: 3px 10px; border-radius: 99px; color: var(--ink); }
+  .info { padding: 16px 18px 18px; display: flex; flex-direction: column; flex: 1; }
+  .name { font-family: "Cormorant Garamond", serif; font-size: 23px; font-weight: 700; line-height: 1.15; }
+  .desc { font-size: 14px; color: var(--muted); margin: 4px 0 12px; flex: 1; }
+  .price { font-size: 26px; font-weight: 700; color: var(--rose); }
+
+  .ctrl { margin-top: 12px; height: 44px; }
+  button { font: inherit; font-weight: 600; cursor: pointer; border: 0; }
+  .add { width: 100%; height: 44px; border-radius: 12px; background: transparent; border: 1.5px solid var(--rose); color: var(--rose); font-size: 15px; }
+  .add:hover { background: var(--rose); color: #fff; }
+  .qty { display: flex; align-items: center; justify-content: space-between; background: #f1e8df; border-radius: 12px; }
+  .qty button { width: 44px; height: 44px; font-size: 22px; background: transparent; color: var(--ink); border-radius: 12px; }
+  .qty button:hover { background: #e7dbcf; }
+  .qty span { font-size: 24px; font-weight: 700; }
+
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--sage); color: #fff; padding: 14px 24px calc(14px + env(safe-area-inset-bottom)); box-shadow: 0 -6px 24px rgba(60,80,60,.18); }
+  .bar[hidden] { display: none; }
+  .bar-in { max-width: 1112px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+  .bar-info { display: flex; align-items: baseline; gap: 14px; }
+  .bar-cnt { font-size: 16px; opacity: .9; }
+  .bar-sum { font-size: 28px; font-weight: 700; }
+  .bar-btns { display: flex; gap: 10px; margin-left: auto; }
+  .clear { height: 46px; padding: 0 18px; border-radius: 12px; background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,.55); font-size: 15px; }
+  .clear:hover { background: rgba(255,255,255,.12); }
+  .order { height: 46px; padding: 0 28px; border-radius: 12px; background: #fffcf8; color: var(--ink); font-size: 16px; }
+  .order:hover { background: #fff; }
+
+  dialog { width: min(460px, calc(100% - 32px)); max-height: calc(100% - 32px); margin: auto; border: 0; border-radius: 24px; padding: 26px 24px; background: var(--card); color: var(--ink); }
+  dialog::backdrop { background: rgba(58,47,47,.5); }
+  .dlg-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .dlg-head h2, .thanks h2 { font-family: "Cormorant Garamond", serif; font-size: 30px; }
+  .x { width: 40px; height: 40px; font-size: 24px; background: transparent; color: var(--muted); border-radius: 10px; }
+  .items { list-style: none; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .items li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 15px; }
+  .items b { white-space: nowrap; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0 18px; }
+  .total span { color: var(--muted); }
+  .total b { font-size: 28px; color: var(--rose); }
+  .send { width: 100%; height: 50px; border-radius: 12px; background: var(--rose); color: #fff; font-size: 16px; }
+  .send:hover { background: var(--rose-d); }
+  .thanks { text-align: center; padding: 10px 0 4px; }
+  .thanks .big { font-size: 52px; }
+  .thanks p { color: var(--muted); margin: 6px 0 20px; }
+
+  @media (max-width: 980px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 720px) {
+    .wrap { padding: 0 16px; }
+    .hero { grid-template-columns: 1fr; padding-top: 30px; }
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .pic { height: 120px; font-size: 56px; }
+    .info { padding: 12px 12px 14px; }
+    .name { font-size: 20px; }
+    .nav-note { display: none; }
+    .bar { padding-left: 16px; padding-right: 16px; }
+    .bar-sum { font-size: 24px; }
+    .order { padding: 0 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="logo">Пион <i>&</i> шалфей</div>
+    <div class="nav-note">Собираем букеты в день заказа</div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <h1>Букеты, которые <i>говорят</i> за Вас</h1>
+      <p>Сезонные цветы, авторские композиции и бережная упаковка. Выберите букет — мы соберём его в день заказа.</p>
+    </div>
+    <div class="chips"><span>Сезонные цветы</span><span>Открытка в подарок</span><span>Доставка в день заказа</span></div>
+  </header>
+
+  <main class="grid">
+    <div class="card" data-price="3200">
+      <div class="pic" style="background:#f3dfe0"><small>Хит</small>💐</div>
+      <div class="info"><div class="name">Букет «Нежность»</div><div class="desc">Пионовидные розы, эвкалипт, крафт</div><div class="price">3 200 ₽</div><div class="ctrl"></div></div>
+    </div>
+    <div class="card" data-price="2450">
+      <div class="pic" style="background:#f6e6d6">🌷</div>
+      <div class="info"><div class="name">Тюльпаны «Утро»</div><div class="desc">15 тюльпанов пастельных оттенков</div><div class="price">2 450 ₽</div><div class="ctrl"></div></div>
+    </div>
+    <div class="card" data-price="4100">
+      <div class="pic" style="background:#e4ebe0"><small>Новинка</small>🌿</div>
+      <div class="info"><div class="name">Композиция «Шалфей»</div><div class="desc">Зелень, кустовые розы, шляпная коробка</div><div class="price">4 100 ₽</div><div class="ctrl"></div></div>
+    </div>
+    <div class="card" data-price="1900">
+      <div class="pic" style="background:#f4e9c9">🌻</div>
+      <div class="info"><div class="name">Подсолнухи «Лето»</div><div class="desc">5 подсолнухов, лён и пшеница</div><div class="price">1 900 ₽</div><div class="ctrl"></div></div>
+    </div>
+    <div class="card" data-price="5600">
+      <div class="pic" style="background:#efdbe2">🌹</div>
+      <div class="info"><div class="name">Розы «Классика»</div><div class="desc">25 роз, атласная лента</div><div class="price">5 600 ₽</div><div class="ctrl"></div></div>
+    </div>
+    <div class="card" data-price="2800">
+      <div class="pic" style="background:#e6e2f0">🪻</div>
+      <div class="info"><div class="name">Букет «Лаванда»</div><div class="desc">Гиацинты, лаванда, ирисы</div><div class="price">2 800 ₽</div><div class="ctrl"></div></div>
+    </div>
+    <div class="card" data-price="1200">
+      <div class="pic" style="background:#f6e0d9">🌸</div>
+      <div class="info"><div class="name">Мини-букет «Привет»</div><div class="desc">Небольшой букет к подарку</div><div class="price">1 200 ₽</div><div class="ctrl"></div></div>
+    </div>
+    <div class="card" data-price="950">
+      <div class="pic" style="background:#e3ece6">🪴</div>
+      <div class="info"><div class="name">Суккулент в горшке</div><div class="desc">Керамический горшок ручной работы</div><div class="price">950 ₽</div><div class="ctrl"></div></div>
+    </div>
+  </main>
+</div>
+
+<div class="bar" id="bar" hidden>
+  <div class="bar-in">
+    <div class="bar-info"><span class="bar-cnt">В корзине <span id="cnt">0</span> шт.</span><span class="bar-sum"><span id="sum">0</span> ₽</span></div>
+    <div class="bar-btns">
+      <button class="clear" id="clear">Очистить</button>
+      <button class="order" id="order">Заказать</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <div id="step-form">
+    <div class="dlg-head"><h2>Ваш заказ</h2><button class="x" data-close aria-label="Закрыть">×</button></div>
+    <ul class="items" id="items"></ul>
+    <div class="total"><span id="d-cnt"></span><b id="d-sum"></b></div>
+    <button class="send" id="confirm">Подтвердить заказ</button>
+  </div>
+  <div class="thanks" id="step-thanks" hidden>
+    <div class="big">💐</div>
+    <h2>Спасибо за заказ!</h2>
+    <p>Мы уже начали собирать Ваш букет.</p>
+    <button class="send" data-close>Закрыть</button>
+  </div>
+</dialog>
+
+<script>
+  const cart = new Map();                          // карточка → количество
+  const cards = document.querySelectorAll(".card");
+  const fmt = n => n.toLocaleString("ru-RU");
+  const $ = id => document.getElementById(id);
+
+  function render() {
+    let cnt = 0, sum = 0;
+    cards.forEach(card => {
+      const q = cart.get(card) || 0;
+      cnt += q;
+      sum += q * card.price;
+      card.ctrl.innerHTML = q
+        ? `<div class="qty"><button data-d="-1" aria-label="Убрать одну">−</button><span>${q}</span><button data-d="1" aria-label="Добавить ещё">+</button></div>`
+        : `<button class="add" data-d="1">В корзину</button>`;
+      card.classList.toggle("in", q > 0);
+    });
+    $("cnt").textContent = cnt;
+    $("sum").textContent = fmt(sum);
+    $("bar").hidden = cnt === 0;
+    document.body.classList.toggle("has-bar", cnt > 0);
+  }
+
+  cards.forEach(card => {
+    card.price = Number(card.dataset.price);
+    card.ctrl = card.querySelector(".ctrl");
+    card.ctrl.addEventListener("click", e => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      const q = (cart.get(card) || 0) + Number(b.dataset.d);
+      q > 0 ? cart.set(card, q) : cart.delete(card);
+      render();
+    });
+  });
+
+  $("clear").addEventListener("click", () => { cart.clear(); render(); });
+
+  const dlg = $("dlg");
+  $("order").addEventListener("click", () => {
+    let cnt = 0, sum = 0;
+    $("items").innerHTML = "";
+    cart.forEach((q, card) => {
+      cnt += q;
+      sum += q * card.price;
+      const li = document.createElement("li");
+      li.innerHTML = `<span></span><b>${fmt(q * card.price)} ₽</b>`;
+      li.firstChild.textContent = `${card.querySelector(".name").textContent} × ${q}`;
+      $("items").appendChild(li);
+    });
+    $("d-cnt").textContent = `Итого: ${cnt} шт.`;
+    $("d-sum").textContent = `${fmt(sum)} ₽`;
+    $("step-form").hidden = false;
+    $("step-thanks").hidden = true;
+    dlg.showModal();
+  });
+
+  $("confirm").addEventListener("click", () => {
+    $("step-form").hidden = true;
+    $("step-thanks").hidden = false;
+    cart.clear();
+    render();
+  });
+
+  dlg.addEventListener("click", e => {
+    const r = dlg.getBoundingClientRect();
+    const outside = e.target === dlg && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom);
+    if (outside || e.target.hasAttribute("data-close")) dlg.close();   // фон или крестик
+  });
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Знаете ли Вы космос?</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Golos+Text:wght@400;600&family=PT+Mono&display=swap&subset=cyrillic">
+<style>
+/* Викторина про космос: карточка вопроса по центру, сверху счёт и таймер */
+:root {
+  --bg: #080c14; --panel: #0e1420; --line: #1d2635; --fg: #c8d3e0; --muted: #8a96aa;
+  --green: #4a9e6a; --blue: #4a7eaa; --purple: #7a67b8; --yellow: #b8933a; --red: #b85555;
+  --display: "Oswald", "Arial Narrow", sans-serif;
+  --body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --mono: "PT Mono", ui-monospace, "Courier New", monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg); }
+body {
+  font-family: var(--body); font-size: 16px; line-height: 1.5; padding: 24px 16px;
+  background:
+    radial-gradient(1px 1px at 12% 18%, #8a96aa 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 12%, #8a96aa 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 64% 72%, #6c7a90 50%, transparent 51%),
+    radial-gradient(1px 1px at 30% 86%, #6c7a90 50%, transparent 51%),
+    radial-gradient(1px 1px at 90% 56%, #8a96aa 50%, transparent 51%),
+    radial-gradient(900px 500px at 85% -10%, rgba(122, 103, 184, .16), transparent 70%),
+    radial-gradient(700px 500px at -10% 110%, rgba(74, 126, 170, .14), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+.wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 18px; min-height: calc(100vh - 48px); align-content: center; }
+header h1 { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 5vw, 42px); letter-spacing: .06em; text-transform: uppercase; margin: 0; line-height: 1.1; }
+header h1 span { color: var(--purple); }
+header p { margin: 4px 0 0; color: var(--muted); }
+.card { background: rgba(14, 20, 32, .92); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: grid; gap: 18px; }
+.hud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; }
+.stat { display: flex; align-items: baseline; gap: 8px; }
+.stat small { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.stat b { font-family: var(--mono); font-weight: 400; font-size: 28px; font-variant-numeric: tabular-nums; }
+#score { color: var(--yellow); }
+#timer.low { color: var(--red); }
+.bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--blue); }
+.bar i.low { background: var(--red); }
+.q-emoji { font-size: 44px; line-height: 1; }
+.q-text { font-size: clamp(20px, 3.4vw, 26px); font-weight: 600; margin: 0; line-height: 1.3; text-wrap: balance; }
+.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .answers { grid-template-columns: 1fr; } .card { padding: 18px; } }
+.answers button {
+  font: inherit; font-size: 17px; text-align: left; cursor: pointer;
+  display: flex; gap: 12px; align-items: center;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; min-height: 58px; transition: border-color .15s, background .15s;
+}
+.answers button kbd { font-family: var(--mono); font-size: 14px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 7px; flex: none; }
+.answers button:hover:not(:disabled) { border-color: var(--purple); background: #141b2b; }
+.answers button:disabled { cursor: default; }
+.answers button.right { border-color: var(--green); background: rgba(74, 158, 106, .2); }
+.answers button.right kbd { color: var(--fg); border-color: var(--green); }
+.answers button.wrong { border-color: var(--red); background: rgba(184, 85, 85, .2); }
+.answers button.dim { opacity: .5; }
+.feedback { margin: 0; min-height: 48px; color: var(--muted); font-size: 15px; }
+.feedback b.ok { color: var(--green); }
+.feedback b.bad { color: var(--red); }
+.row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.primary { font: inherit; cursor: pointer; background: var(--purple); color: #f0eefa; border: 0; border-radius: 8px; padding: 12px 28px; font-family: var(--display); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
+.primary:hover { filter: brightness(1.12); }
+.primary:disabled { opacity: .35; cursor: default; filter: none; }
+button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.note { color: var(--muted); font-size: 14px; margin: 0; }
+/* стартовый и итоговый экраны */
+.center { text-align: center; justify-items: center; }
+.big { font-size: 64px; line-height: 1; }
+.center h2 { font-family: var(--display); font-size: 32px; letter-spacing: .06em; text-transform: uppercase; margin: 0; }
+.result { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.result div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 20px; min-width: 140px; }
+.result small { display: block; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.result b { font-family: var(--mono); font-weight: 400; font-size: 32px; }
+.result .gold { color: var(--yellow); }
+.result .ok { color: var(--green); }
+.verdict { font-size: 18px; max-width: 46ch; margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Знаете ли Вы <span>космос?</span></h1>
+    <p>12 вопросов, на каждый — 15 секунд. Чем быстрее ответ, тем больше очков.</p>
+  </header>
+
+  <section class="card center" id="screen-start">
+    <div class="big" aria-hidden="true">🚀</div>
+    <h2>Готовы к старту?</h2>
+    <p class="note">Отвечайте мышью, пальцем или клавишами 1–4. Enter — следующий вопрос.</p>
+    <p class="note" id="best-start"></p>
+    <button class="primary" id="btn-start" type="button">Начать</button>
+  </section>
+
+  <section class="card" id="screen-game" hidden>
+    <div class="hud">
+      <div class="stat"><small>Вопрос</small><b id="num">1 / 12</b></div>
+      <div class="stat"><small>Очки</small><b id="score">0</b></div>
+      <div class="stat"><small>Время</small><b id="timer">15</b></div>
+    </div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="q-emoji" id="q-emoji" aria-hidden="true"></div>
+    <p class="q-text" id="q-text"></p>
+    <div class="answers" id="answers"></div>
+    <p class="feedback" id="feedback" aria-live="polite"></p>
+    <div class="row">
+      <p class="note" id="streak"></p>
+      <button class="primary" id="btn-next" type="button" disabled>Дальше</button>
+    </div>
+  </section>
+
+  <section class="card center" id="screen-end" hidden>
+    <div class="big" id="end-emoji" aria-hidden="true"></div>
+    <h2 id="end-title"></h2>
+    <div class="result">
+      <div><small>Очки</small><b class="gold" id="end-score">0</b></div>
+      <div><small>Верных</small><b class="ok" id="end-right">0</b></div>
+      <div><small>Рекорд</small><b id="end-best">0</b></div>
+    </div>
+    <p class="verdict" id="end-text"></p>
+    <button class="primary" id="btn-again" type="button">Сыграть ещё</button>
+  </section>
+</div>
+
+<script>
+'use strict';
+// a — номер верного варианта в списке v
+const QUESTIONS = [
+  { e: '☀️', q: 'Какая планета ближе всех к Солнцу?', v: ['Венера', 'Меркурий', 'Марс', 'Земля'], a: 1, t: 'Меркурий делает оборот вокруг Солнца всего за 88 земных суток.' },
+  { e: '🪐', q: 'Какая планета самая большая в Солнечной системе?', v: ['Сатурн', 'Нептун', 'Юпитер', 'Уран'], a: 2, t: 'В Юпитер поместилось бы больше тысячи таких планет, как Земля.' },
+  { e: '🔢', q: 'Сколько планет в Солнечной системе?', v: ['7', '8', '9', '10'], a: 1, t: 'Восемь: Меркурий, Венера, Земля, Марс, Юпитер, Сатурн, Уран и Нептун.' },
+  { e: '👨‍🚀', q: 'Кто первым в истории полетел в космос?', v: ['Нил Армстронг', 'Алексей Леонов', 'Герман Титов', 'Юрий Гагарин'], a: 3, t: 'Юрий Гагарин облетел Землю 12 апреля 1961 года.' },
+  { e: '🌌', q: 'Как называется наша галактика?', v: ['Млечный Путь', 'Андромеда', 'Сомбреро', 'Треугольник'], a: 0, t: 'Млечный Путь — спиральная галактика, в ней сотни миллиардов звёзд.' },
+  { e: '🔴', q: 'Какую планету называют Красной?', v: ['Меркурий', 'Юпитер', 'Марс', 'Венера'], a: 2, t: 'Цвет Марсу дают оксиды железа в его пыли — по сути, ржавчина.' },
+  { e: '💡', q: 'Сколько примерно летит свет от Солнца до Земли?', v: ['8 секунд', '8 минут', '8 часов', '8 дней'], a: 1, t: 'Около 8 минут 20 секунд — мы видим Солнце «в прошлом».' },
+  { e: '💍', q: 'У какой планеты самые заметные кольца?', v: ['Сатурн', 'Марс', 'Венера', 'Меркурий'], a: 0, t: 'Кольца есть у всех планет-гигантов, но у Сатурна они ярче всех.' },
+  { e: '🔥', q: 'Какая планета самая горячая?', v: ['Меркурий', 'Марс', 'Юпитер', 'Венера'], a: 3, t: 'Венера: плотная атмосфера держит тепло, на поверхности около +460 °C.' },
+  { e: '🧑‍🚀', q: 'Кто первым вышел в открытый космос?', v: ['Юрий Гагарин', 'Алексей Леонов', 'Валентина Терешкова', 'Нил Армстронг'], a: 1, t: 'Алексей Леонов провёл за бортом корабля около 12 минут в 1965 году.' },
+  { e: '🛰️', q: 'На какой высоте примерно летает МКС?', v: ['40 км', '400 км', '4 000 км', '40 000 км'], a: 1, t: 'Около 400 км — один оборот вокруг Земли занимает примерно полтора часа.' },
+  { e: '📅', q: 'Сколько земных суток длится год на Марсе?', v: ['88', '225', '365', '687'], a: 3, t: 'Около 687 суток — почти два земных года.' },
+  { e: '⭐', q: 'Какая звезда ближе всех к Солнечной системе?', v: ['Сириус', 'Полярная', 'Проксима Центавра', 'Бетельгейзе'], a: 2, t: 'Свет от Проксимы Центавра идёт к нам чуть больше четырёх лет.' },
+  { e: '🐕', q: 'Как звали собак, которые первыми слетали на орбиту и вернулись живыми?', v: ['Белка и Стрелка', 'Лайка и Жучка', 'Тузик и Шарик', 'Пчёлка и Мушка'], a: 0, t: 'Белка и Стрелка провели на орбите больше суток в августе 1960 года.' },
+  { e: '🌑', q: 'Кем сейчас считается Плутон?', v: ['Планетой', 'Карликовой планетой', 'Спутником Нептуна', 'Кометой'], a: 1, t: 'В 2006 году астрономы перевели Плутон в карликовые планеты.' },
+];
+const ROUND = 12, TIME = 15, BASE = 100, PER_SEC = 10;
+const LETTERS = ['1', '2', '3', '4'];
+const $ = id => document.getElementById(id);
+
+let list = [], idx = 0, score = 0, right = 0, streak = 0, left = TIME, answered = false, tick = null, deadline = 0;
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function readBest() { try { return Number(localStorage.getItem('kosmos.best')) || 0; } catch (e) { return 0; } }
+function saveBest(v) { try { localStorage.setItem('kosmos.best', String(v)); } catch (e) {} }
+function show(id) { ['screen-start', 'screen-game', 'screen-end'].forEach(s => { $(s).hidden = s !== id; }); }
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+
+function start() {
+  // перемешиваем и вопросы, и варианты внутри — каждый раунд немного другой
+  list = shuffle(QUESTIONS).slice(0, ROUND).map(q => {
+    const order = shuffle([0, 1, 2, 3]);
+    return { ...q, v: order.map(i => q.v[i]), a: order.indexOf(q.a) };
+  });
+  idx = 0; score = 0; right = 0; streak = 0;
+  $('score').textContent = '0';
+  show('screen-game');
+  ask();
+}
+
+function ask() {
+  const q = list[idx];
+  answered = false;
+  $('num').textContent = `${idx + 1} / ${list.length}`;
+  $('q-emoji').textContent = q.e;
+  $('q-text').textContent = q.q;
+  $('feedback').textContent = '';
+  $('btn-next').disabled = true;
+  $('btn-next').textContent = idx === list.length - 1 ? 'Итоги' : 'Дальше';
+  const box = $('answers');
+  box.textContent = '';
+  q.v.forEach((text, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = `<kbd>${LETTERS[i]}</kbd><span></span>`;
+    b.querySelector('span').textContent = text;
+    b.addEventListener('click', () => choose(i));
+    box.appendChild(b);
+  });
+  deadline = performance.now() + TIME * 1000;
+  clearInterval(tick);
+  tick = setInterval(update, 100);
+  update();
+}
+
+function update() {
+  const ms = Math.max(0, deadline - performance.now());
+  left = Math.ceil(ms / 1000);
+  $('timer').textContent = left;
+  $('timer').classList.toggle('low', left <= 5);
+  $('bar').style.width = (ms / (TIME * 1000) * 100) + '%';
+  $('bar').classList.toggle('low', left <= 5);
+  if (ms <= 0) choose(-1);
+}
+
+function choose(i) {
+  if (answered) return;
+  answered = true;
+  clearInterval(tick);
+  const q = list[idx], buttons = $('answers').children;
+  [...buttons].forEach((b, k) => {
+    b.disabled = true;
+    if (k === q.a) b.classList.add('right');
+    else if (k === i) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  let head;
+  if (i === q.a) {
+    const gain = BASE + left * PER_SEC;
+    score += gain; right++; streak++;
+    head = `<b class="ok">Верно! +${gain}</b>`;
+  } else {
+    streak = 0;
+    head = i < 0 ? '<b class="bad">Время вышло.</b>' : '<b class="bad">Неверно.</b>';
+    head += ` Правильный ответ: ${q.v[q.a]}.`;
+  }
+  $('feedback').innerHTML = head + ' ';
+  $('feedback').append(q.t);
+  $('score').textContent = score;
+  $('streak').textContent = streak >= 2 ? `🔥 ${streak} ${plural(streak, 'верный', 'верных', 'верных')} подряд` : '';
+  $('btn-next').disabled = false;
+  $('btn-next').focus();
+}
+
+function next() {
+  if (!answered) return;
+  idx++;
+  if (idx < list.length) ask(); else finish();
+}
+
+function finish() {
+  const best = readBest(), isRecord = score > best;
+  if (isRecord) saveBest(score);
+  const share = right / list.length;
+  const [emoji, title, text] =
+    share === 1 ? ['🏆', 'Безупречно!', 'Все ответы верные. Вы знаете космос лучше многих астрономов-любителей.'] :
+    share >= .75 ? ['🌟', 'Отлично!', 'Почти без ошибок. Ещё немного — и будет идеальный полёт.'] :
+    share >= .5 ? ['🚀', 'Хороший полёт', 'Больше половины верных ответов. Попробуйте ещё раз — вопросы и варианты перемешаются.'] :
+    ['🌍', 'Есть куда расти', 'Космос огромный, и узнать о нём можно ещё многое. Сыграйте ещё раз!'];
+  $('end-emoji').textContent = emoji;
+  $('end-title').textContent = title;
+  $('end-score').textContent = score;
+  $('end-right').textContent = `${right} / ${list.length}`;
+  $('end-best').textContent = Math.max(best, score);
+  $('end-text').textContent = (isRecord && score > 0 ? '🎉 Новый рекорд! ' : '') + text;
+  show('screen-end');
+  $('btn-again').focus();
+}
+
+$('btn-start').addEventListener('click', start);
+$('btn-again').addEventListener('click', start);
+$('btn-next').addEventListener('click', next);
+addEventListener('keydown', e => {
+  if ($('screen-game').hidden || e.repeat) return;
+  const k = LETTERS.indexOf(e.key);
+  if (k >= 0 && !answered) { e.preventDefault(); choose(k); }
+  else if (e.key === 'Enter' && answered && document.activeElement !== $('btn-next')) { e.preventDefault(); next(); }
+});
+
+const best0 = readBest();
+$('best-start').textContent = best0 ? `Ваш рекорд: ${best0} ${plural(best0, 'очко', 'очка', 'очков')}` : '';
+</script>
+</body>
+</html>
