@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<title>Где страна? — игра на знание карты</title>
+<meta name="description" content="Найдите на карте субъекты РФ, страны мира и города России. Игра для школьников: три попытки на каждое название.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Golos+Text:wght@400;600&family=PT+Mono&display=swap&subset=cyrillic">
+<style>
+/* ===== ТОКЕНЫ (из design/sketch.html) ===== */
+:root {
+  --bg: #080c14; --panel: #0e1420; --line: #1d2635; --fg: #c8d3e0; --muted: #8a96aa;
+  --green: #4a9e6a; --blue: #4a7eaa; --purple: #7a67b8; --yellow: #b8933a; --red: #b85555;
+  --brick: #9c5f3f;
+  --sea: #0b111c;
+  --map-fill: #1c2636;
+  --map-stroke: #3a4a60;
+  --map-hover: #4a7eaa;
+  --try1: var(--green); --try2: var(--yellow); --try3: var(--brick); --miss: var(--red);
+  --display: "Oswald", "Arial Narrow", sans-serif;
+  --body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --mono: "PT Mono", ui-monospace, "Courier New", monospace;
+  --fs: 15px; --fs-small: 14px; --fs-num: 24px; --fs-task: clamp(22px, 4.2vw, 30px);
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+  --r: 6px; --r-lg: 10px; --tap: 44px;
+  --glass: rgba(14, 20, 32, .86);
+  --flash: 600ms;
+  color-scheme: dark;
+}
+
+/* ===== БАЗА ===== */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body { font-family: var(--body); font-size: var(--fs); line-height: 1.5; overflow-x: hidden; }
+button { font: inherit; cursor: pointer; touch-action: manipulation; }
+button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.num { font-family: var(--mono); font-size: var(--fs-num); line-height: 1; font-variant-numeric: tabular-nums; }
+.lbl { font-size: var(--fs-small); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+
+.btn { min-height: var(--tap); padding: 0 var(--s4); border-radius: var(--r); border: 1px solid var(--line);
+       background: var(--panel); color: var(--fg); font-size: var(--fs-small); white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn:active { background: var(--line); }
+.btn.ghost { background: none; color: var(--muted); }
+.btn.ghost:hover { color: var(--fg); }
+.btn.primary { background: var(--yellow); border-color: var(--yellow); color: #120d06;
+               font-family: var(--display); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
+.btn.primary:hover { filter: brightness(1.1); }
+
+/* ===== КАРТА ===== */
+.map { position: relative; min-height: 0; background: var(--sea); border: 1px solid var(--line);
+       border-radius: var(--r-lg); overflow: hidden; }
+.map svg { display: block; width: 100%; height: 100%; touch-action: none; }   /* жесты отдаём d3.zoom */
+.map path { fill: var(--map-fill); stroke: var(--map-stroke); stroke-width: .8;
+       vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: fill 150ms ease-out; cursor: pointer; }
+.map .back { pointer-events: none; cursor: default; }
+.map .nostroke { stroke: none; }
+.map .mesh { fill: none; pointer-events: none; }
+.map .city { fill: var(--fg); stroke: var(--bg); stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: pointer; }
+.map .item.hover:not(.t1):not(.t2):not(.t3):not(.t0) { fill: var(--map-hover); }
+.map .t1 { fill: var(--try1); } .map .t2 { fill: var(--try2); }
+.map .t3 { fill: var(--try3); } .map .t0 { fill: var(--miss); }
+.map .flash-1 { animation: flash1 var(--flash) ease-out; }
+.map .flash-2 { animation: flash2 var(--flash) ease-out; }
+.map .flash-3 { animation: flash3 var(--flash) ease-out; }
+@keyframes flash1 { 0%, 40% { fill: var(--try2); } }
+@keyframes flash2 { 0%, 40% { fill: var(--try3); } }
+@keyframes flash3 { 0%, 40% { fill: var(--miss); } }
+.map .item.t0 { stroke: var(--fg); stroke-width: 1.5; }   /* не найден: светлая обводка, не только цвет */
+.map .item.reveal { stroke: var(--fg); stroke-width: 2.5; animation: blink 800ms steps(1) infinite; }
+@keyframes blink { 50% { stroke-opacity: 0; } }
+.map .item.seam { stroke: none !important; }
+.map .outline { fill: none !important; stroke: none; pointer-events: none; }
+.map .outline.t0 { stroke: var(--fg); stroke-width: 1.5; }
+.map .outline.reveal { stroke: var(--fg); stroke-width: 2.5; animation: blink 800ms steps(1) infinite; }
+@media (prefers-reduced-motion: reduce) { .map [class*="flash-"] { animation-duration: 1ms; } .map .item.reveal, .map .outline.reveal { animation: none; } }
+.map text { fill: var(--fg); stroke: var(--bg); paint-order: stroke; stroke-linejoin: round;
+            font-family: var(--body); font-weight: 600; pointer-events: none; }
+
+.zoom { position: absolute; right: var(--s2); bottom: var(--s2); display: grid; gap: var(--s2); }
+.zoom button { width: var(--tap); height: var(--tap); border-radius: var(--r); border: 1px solid var(--line);
+               background: var(--glass); color: var(--fg); font-family: var(--mono); font-size: 24px; line-height: 1; }
+.zoom button:hover { border-color: var(--muted); }
+
+/* ===== ЭКРАН 1: СТАРТ ===== */
+.start { min-height: 100dvh; display: grid; align-content: center; gap: var(--s5);
+         padding: var(--s5) var(--s4); max-width: 1040px; margin: 0 auto; }
+.start h1 { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 6vw, 56px);
+            letter-spacing: .08em; text-transform: uppercase; margin: 0; line-height: 1.05; }
+.start h1 span { color: var(--yellow); }
+.start p { margin: var(--s1) 0 0; color: var(--muted); max-width: 52ch; }
+.start .loaderr { color: var(--fg); padding: var(--s3) var(--s4); border: 1px solid var(--red); border-radius: var(--r); }
+.modes { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); }
+@media (min-width: 720px) { .modes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.mode { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto 1fr auto; gap: var(--s2) var(--s4);
+        text-align: left; padding: var(--s4) var(--s4) var(--s4) var(--s5);
+        background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); color: var(--fg);
+        position: relative; overflow: hidden; transition: border-color 150ms; }
+.mode::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--accent); }
+.mode:hover { border-color: var(--accent); }
+.mode h2 { grid-column: 1 / -1; font-family: var(--display); font-weight: 500; font-size: 24px; letter-spacing: .06em;
+           text-transform: uppercase; margin: 0; line-height: 1.15; }
+.mode .glyph { grid-column: 2; grid-row: 3; align-self: end; width: 56px; height: 42px; }
+.mode .glyph * { fill: var(--map-fill); stroke: var(--accent); stroke-width: 1.2; }
+.mode .desc { grid-column: 1 / -1; color: var(--muted); font-size: var(--fs-small); }
+.mode .count { grid-column: 1; grid-row: 3; align-self: end; display: flex; align-items: baseline; gap: var(--s2); }
+.mode .count .lbl { text-transform: none; letter-spacing: 0; }
+.mode .go { grid-column: 1 / -1; font-family: var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--fg); }
+@media (min-width: 720px) { .mode { min-height: 148px; } }
+.mode.ru { --accent: var(--blue); } .mode.world { --accent: var(--purple); } .mode.city { --accent: var(--yellow); }
+.legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); margin: 0; padding: 0; list-style: none;
+          font-size: var(--fs-small); color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: var(--s2); }
+.legend li::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+
+/* ===== ЭКРАН 2: ИГРА ===== */
+.game { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+        grid-template-areas: "hud" "map" "act"; gap: var(--s2);
+        padding: max(var(--s2), env(safe-area-inset-top)) var(--s2) max(var(--s2), env(safe-area-inset-bottom)); }
+.hud { grid-area: hud; display: grid; gap: var(--s1); padding: 0 var(--s2); min-width: 0; }
+.task { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s2); min-width: 0; }
+.task .lbl { text-transform: none; letter-spacing: 0; font-size: var(--fs); }
+.task b { font-family: var(--display); font-weight: 500; font-size: var(--fs-task); line-height: 1.15;
+          letter-spacing: .03em; text-wrap: balance; overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s4); }
+.meta .lbl, .score .lbl { text-transform: none; letter-spacing: 0; }
+.tries { display: flex; gap: var(--s2); align-items: center; }
+.tries i { width: 14px; height: 14px; border-radius: 50%; background: var(--fg); }
+.tries i.used { background: none; box-shadow: inset 0 0 0 2px var(--line); }
+.tries i.used.u1 { background: var(--try2); box-shadow: none; }
+.tries i.used.u2 { background: var(--try3); box-shadow: none; }
+.tries i.used.u3 { background: none; box-shadow: inset 0 0 0 4px var(--miss); }  /* кольцо: не спутать с u2 при дальтонизме */
+.stat { display: flex; align-items: baseline; gap: var(--s2); white-space: nowrap; }
+.status { margin: 0; min-height: 1.5em; font-size: var(--fs-small); color: var(--muted); }
+.game .map { grid-area: map; }
+.actions { grid-area: act; display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: var(--s2); }
+@media (min-width: 720px) {
+  .game { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr);
+          grid-template-areas: "hud act" "map map"; gap: var(--s3); padding: var(--s3) var(--s4) var(--s4); }
+  .hud { padding: 0; }
+  .actions { display: flex; align-self: end; }
+  .meta { gap: var(--s2) var(--s6); }
+}
+
+/* ===== ЭКРАН ИЗУЧЕНИЯ ===== */
+.study { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto;
+         grid-template-areas: "head" "map" "groups" "act"; gap: var(--s2);
+         padding: max(var(--s2), env(safe-area-inset-top)) var(--s2) max(var(--s2), env(safe-area-inset-bottom)); }
+.study-head { grid-area: head; padding: 0 var(--s2); min-width: 0; }
+.study h2 { font-family: var(--display); font-weight: 500; font-size: var(--fs-task); letter-spacing: .03em;
+            line-height: 1.15; margin: 0; text-wrap: balance; }
+.study .hint { margin: var(--s1) 0 0; font-size: var(--fs-small); color: var(--muted); }
+.study .map { grid-area: map; }
+.study .map .item.hover { stroke: var(--fg); stroke-width: 1.5; }
+.tip { position: absolute; left: 0; top: 0; max-width: 70%; padding: var(--s1) var(--s2); border-radius: var(--r);
+       background: var(--glass); border: 1px solid var(--line); font-size: var(--fs-small); font-weight: 600; pointer-events: none; }
+.groups { grid-area: groups; padding: 0 var(--s2); min-width: 0; }
+.groups summary { cursor: pointer; padding: var(--s1) 0; font-size: var(--fs-small); color: var(--muted); }
+.groups .legend { gap: var(--s1) var(--s4); padding-top: var(--s1); color: var(--fg); }
+.study-act { grid-area: act; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+.study-act .primary { grid-column: 1 / -1; }
+@media (min-width: 1024px), (min-width: 720px) and (orientation: landscape) {   /* планшет стоя — карта на всю ширину */
+  .study { grid-template-columns: minmax(0, 1fr) 300px; grid-template-rows: auto auto minmax(0, 1fr) auto;
+           grid-template-areas: "map head" "map groups" "map ." "map act"; gap: var(--s3) var(--s4); padding: var(--s4); }
+  .study-head, .groups { padding: 0; }
+  .groups .legend { flex-direction: column; }
+}
+
+/* ===== ЭКРАН 3: ИТОГ ===== */
+.result { display: grid; grid-template-rows: 42dvh auto; gap: var(--s3); padding: var(--s2); }
+.result .map { min-height: 220px; }
+.sum { display: grid; gap: var(--s4); align-content: start; padding: var(--s4); background: var(--panel);
+       border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
+.sum h2 { font-family: var(--display); font-size: 28px; letter-spacing: .06em; text-transform: uppercase; margin: 0; line-height: 1.1; }
+.sum h2 small { display: block; font-family: var(--body); font-size: var(--fs-small); color: var(--muted);
+                letter-spacing: 0; text-transform: none; }
+.score { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2); }
+.score .big { font-family: var(--mono); font-size: 40px; line-height: 1; }
+.score .pct { margin-left: auto; color: var(--yellow); }
+.bar4 { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--line); }
+.bar4 i { display: block; }
+.counts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
+.counts li { display: grid; grid-template-columns: 12px 1fr; gap: 2px var(--s2); align-items: center;
+             padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: var(--r); }
+.counts li::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--c); grid-row: 1 / 3; }
+.counts .lbl { text-transform: none; letter-spacing: 0; }
+.missed h3 { margin: 0 0 var(--s2); }
+.missed p { margin: 0; }
+.missed ul { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
+.missed li { padding: 6px var(--s3); border-radius: var(--r); background: rgba(184, 85, 85, .12);
+             border: 1px solid rgba(184, 85, 85, .35); font-size: var(--fs-small); }
+.again { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+@media (min-width: 900px) {
+  .result { height: 100dvh; grid-template-rows: none; grid-template-columns: minmax(0, 1fr) 360px;
+            gap: var(--s4); padding: var(--s4); }
+  .sum { overflow-y: auto; }
+}
+</style>
+
+<body>
+
+<main class="start">
+  <header>
+    <h1>Где <span>страна?</span></h1>
+    <p>Прочитайте название и найдите место на карте.</p>
+  </header>
+  <p class="loaderr" role="alert" hidden>Не удалось загрузить карту. Проверьте интернет и обновите страницу.</p>
+  <div class="modes">
+    <button class="mode ru" data-mode="regions">
+      <h2>Субъекты РФ</h2>
+      <svg class="glyph" viewBox="0 0 64 48" aria-hidden="true"><polygon points="4,30 14,18 30,16 46,8 60,14 58,30 40,36 22,40"/></svg>
+      <span class="desc">Все <span data-n></span> субъектов: республики, края, области.</span>
+      <span class="count"><span class="num" data-n></span><span class="lbl">субъектов</span></span>
+      <span class="go">Начать</span>
+    </button>
+    <button class="mode world" data-mode="world">
+      <h2>Страны мира</h2>
+      <svg class="glyph" viewBox="0 0 64 48" aria-hidden="true"><circle cx="32" cy="24" r="20"/><polygon points="20,14 34,10 38,22 28,30 18,24"/></svg>
+      <span class="desc"><span data-n></span> стран всех континентов, кроме Антарктиды.</span>
+      <span class="count"><span class="num" data-n></span><span class="lbl">стран</span></span>
+      <span class="go">Начать</span>
+    </button>
+    <button class="mode city" data-mode="cities">
+      <h2>Города России</h2>
+      <svg class="glyph" viewBox="0 0 64 48" aria-hidden="true"><polygon points="4,30 14,18 30,16 46,8 60,14 58,30 40,36 22,40"/><circle cx="18" cy="28" r="3"/><circle cx="34" cy="24" r="3"/><circle cx="50" cy="20" r="3"/></svg>
+      <span class="desc"><span data-n></span> крупных городов России.</span>
+      <span class="count"><span class="num" data-n></span><span class="lbl">городов</span></span>
+      <span class="go">Начать</span>
+    </button>
+  </div>
+  <ul class="legend">
+    <li style="--c:var(--try1)">С первой попытки — 3 очка</li>
+    <li style="--c:var(--try2)">Со второй — 2 очка</li>
+    <li style="--c:var(--try3)">С третьей — 1 очко</li>
+    <li style="--c:var(--miss)">Не найдено — 0, покажем где</li>
+  </ul>
+</main>
+
+<main class="study" hidden>
+  <header class="study-head">
+    <h2>Изучите карту: <span class="mode-title"></span></h2>
+    <p class="hint"></p>
+  </header>
+  <div class="map">
+    <div class="zoom">
+      <button data-zoom="in" aria-label="Приблизить карту">+</button>
+      <button data-zoom="out" aria-label="Отдалить карту">−</button>
+    </div>
+    <div class="tip" role="status" hidden></div>
+  </div>
+  <details class="groups"><summary></summary><ul class="legend"></ul></details>
+  <nav class="study-act">
+    <button class="btn primary" data-act="play">Начать игру</button>
+    <button class="btn" data-act="fit" aria-label="Показать всю карту">Вся карта</button>
+    <button class="btn ghost" data-act="back">Назад к режимам</button>
+  </nav>
+</main>
+
+<main class="game" hidden>
+  <section class="hud">
+    <p class="task"><span class="lbl">Найдите:</span> <b></b></p>
+    <div class="meta">
+      <span class="tries" role="img"><i></i><i></i><i></i></span>
+      <span class="stat"><span class="lbl">Найдено</span> <span class="num found"></span> <span class="lbl">из</span> <span class="num total"></span></span>
+      <span class="stat"><span class="lbl">Очки</span> <span class="num points"></span></span>
+    </div>
+    <p class="status" aria-live="polite"></p>
+  </section>
+  <div class="map">
+    <div class="zoom">
+      <button data-zoom="in" aria-label="Приблизить карту">+</button>
+      <button data-zoom="out" aria-label="Отдалить карту">−</button>
+    </div>
+    <div class="tip" aria-hidden="true" hidden></div>
+  </div>
+  <nav class="actions">
+    <button class="btn" data-act="fit" aria-label="Показать всю карту">Вся карта</button>
+    <button class="btn" data-act="skip">Пропустить</button>
+    <button class="btn ghost" data-act="finish">Закончить</button>
+  </nav>
+</main>
+
+<main class="result" hidden>
+  <div class="map">
+    <div class="zoom">
+      <button data-zoom="in" aria-label="Приблизить карту">+</button>
+      <button data-zoom="out" aria-label="Отдалить карту">−</button>
+    </div>
+  </div>
+  <section class="sum">
+    <h2>Ваш результат<small class="mode-title"></small></h2>
+    <div class="score"><span class="lbl">Очки:</span> <span class="big"></span> <span class="lbl">из</span> <span class="num max"></span> <span class="num pct"></span></div>
+    <div class="bar4" aria-hidden="true"><i style="background:var(--try1)"></i><i style="background:var(--try2)"></i><i style="background:var(--try3)"></i><i style="background:var(--miss)"></i></div>
+    <ul class="counts">
+      <li style="--c:var(--try1)"><span class="num"></span><span class="lbl">С первой попытки</span></li>
+      <li style="--c:var(--try2)"><span class="num"></span><span class="lbl">Со второй</span></li>
+      <li style="--c:var(--try3)"><span class="num"></span><span class="lbl">С третьей</span></li>
+      <li style="--c:var(--miss)"><span class="num"></span><span class="lbl">Не найдено</span></li>
+    </ul>
+    <div class="missed"></div>
+    <div class="again">
+      <button class="btn primary" data-act="again">Заново</button>
+      <button class="btn" data-act="modes">Сменить режим</button>
+    </div>
+  </section>
+</main>
+
+<script src="lib/d3.min.js"></script>
+<script src="lib/topojson-client.min.js"></script>
+<script src="data/regions.js"></script>
+<script src="data/world.js"></script>
+<script src="data/cities.js"></script>
+<script src="data/groups.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = (s, root = document) => root.querySelector(s);
+  const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+
+  function loadFailed(why) {
+    console.error('Где страна?: карта не загрузилась — ' + why);
+    $('.start .loaderr').hidden = false;
+    $('.start .modes').hidden = true;
+  }
+  const missing = ['d3', 'topojson', 'DATA_REGIONS', 'DATA_WORLD', 'DATA_CITIES', 'DATA_GROUPS'].filter(n => !window[n]);
+  if (missing.length) return loadFailed('нет ' + missing.join(', '));
+
+  /* ===== 3.1 Режимы ===== */
+  const TITLES = { regions: 'Субъекты РФ', world: 'Страны мира', cities: 'Города России' };
+  const R = window.DATA_REGIONS, W = window.DATA_WORLD;
+  // Границы субъектов одной сеткой. Чукотка в данных разрезана по ±180°: дуги на шве не рисуем.
+  const onSeam = p => Math.abs(Math.abs(p[0]) - 180) < 1e-9;
+  const cutSeam = lines => lines.flatMap(line => {
+    const parts = [[line[0]]];
+    for (let i = 1; i < line.length; i++) {
+      if (onSeam(line[i - 1]) && onSeam(line[i])) parts.push([line[i]]);
+      else parts[parts.length - 1].push(line[i]);
+    }
+    return parts.filter(p => p.length > 1);
+  });
+  let regionFeatures, regionsFC, regionsMesh;
+  try {
+    regionFeatures = topojson.feature(R, R.objects.regions).features;
+    regionsFC = { type: 'FeatureCollection', features: regionFeatures };
+    regionsMesh = topojson.mesh(R, R.objects.regions);
+    regionsMesh.coordinates = cutSeam(regionsMesh.coordinates);
+  } catch (e) {
+    return loadFailed('DATA_REGIONS не разобрать: ' + e.message);
+  }
+  // Проекции: регионы и города — одна ('ru'), подложка городов = пути субъектов. fc — что вписываем в рамку.
+  const RU = { key: 'ru', fc: regionsFC, margin: 12, make: () => d3.geoConicEqualArea().rotate([-100, 0]).parallels([52, 64]) };
+  const geoItem = f => ({ id: f.properties.name, name: f.properties.name, geo: f });
+
+  function buildMode(key) {
+    const m = { key, title: TITLES[key], items: [], back: [], overlay: [], mesh: null };
+    if (key === 'regions') {
+      m.items = regionFeatures.map(geoItem);
+      m.mesh = regionsMesh;
+      m.geo = RU;
+    } else if (key === 'world') {
+      const all = topojson.feature(W, W.objects.countries).features;
+      m.items = all.filter(f => f.properties.playable !== false).map(geoItem);
+      m.back = all.filter(f => f.properties.playable === false);
+      m.overlay = regionFeatures.filter(f => ['Республика Крым', 'Севастополь'].includes(f.properties.name))
+        .map(feature => ({ feature, id: 'Россия' }));
+      if (m.overlay.length !== 2) throw new Error('в DATA_REGIONS не найдены Крым и Севастополь');
+      m.geo = { key: 'world', fc: { type: 'FeatureCollection', features: all }, margin: 8, make: () => d3.geoNaturalEarth1() };
+    } else {
+      m.items = window.DATA_CITIES.map(c => ({ id: c.name, name: c.name, lonlat: [c.lon, c.lat] }));
+      m.back = regionFeatures;
+      m.mesh = regionsMesh;
+      m.geo = RU;
+    }
+    if (!m.items.length) throw new Error('в режиме «' + m.title + '» нет заданий');
+    return m;
+  }
+
+  /* ===== 3.2 Карта ===== */
+  // Цвета групп для экрана изучения (имена групп — из data/groups.js)
+  const GROUP_COLORS = {
+    'Центральный': '#4a7eaa', 'Северо-Западный': '#4a9e6a', 'Южный': '#b8933a', 'Северо-Кавказский': '#9c5f3f',
+    'Приволжский': '#7a67b8', 'Уральский': '#b85555', 'Сибирский': '#3f8f8f', 'Дальневосточный': '#8a8a4a',
+    'Европа': '#4a7eaa', 'Азия': '#b8933a', 'Африка': '#9c5f3f', 'Северная Америка': '#4a9e6a',
+    'Южная Америка': '#7a67b8', 'Австралия и Океания': '#3f8f8f',
+  };
+  // Геометрия считается один раз на проекцию (лениво, при первой карте): строки d, рамки, площади,
+  // главный полигон. Масштаб канонический (1 единица ≈ 1px на 1440); под рамку карту вписывает
+  // аффинное f, tx, ty — fitExtent делает то же самое, проекции отличаются только scale/translate.
+  // Каждая страна/субъект проецируется один раз (ресэмплинг и срез по 180° — самое дорогое): за проход
+  // пишется строка d (как у d3.geoPath с digits(1)) и рамка; плоские полигоны — только для объектов игры
+  // (площадь, центр главного полигона), дальше d3.geoPath() без проекции.
+  const GEO = {};
+  function geometry(spec) {
+    if (GEO[spec.key]) return GEO[spec.key];
+    const proj = spec.make().fitSize([1400, 800], spec.fc), path = d3.geoPath(proj).digits(1), flat = d3.geoPath();
+    const memo = (map, key, fn) => { let v = map.get(key); if (v === undefined) map.set(key, v = fn()); return v; };
+    const dims = b => Math.max(b[1][0] - b[0][0], b[1][1] - b[0][1]);
+    const r1 = v => Math.round(v * 10) / 10;   // 0,1 единицы ≈ 0,1px на 1440: d на треть короче
+    const done = new Map(), feats = new Map(), ds = new Map(), seams = new Map();
+    // feature → {d, b, polys}: polys — по полигону на каждый полигон источника (кусочки среза — в нём же)
+    function project(f, keep) {
+      const old = done.get(f);
+      if (old && (old.polys || !keep)) return old;
+      let d = '', x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, cmd = 'M', poly = false, rings = null, ring = null;
+      const polys = keep ? [] : null;
+      d3.geoStream(f, proj.stream({
+        polygonStart() { poly = true; if (keep) polys.push(rings = []); }, polygonEnd() { poly = false; },
+        lineStart() { cmd = 'M'; if (keep) ring = []; },
+        point(x, y) {
+          d += cmd + r1(x) + ',' + r1(y); cmd = 'L';
+          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+          if (keep) ring.push([x, y]);
+        },
+        lineEnd() { if (poly) d += 'Z'; if (keep && poly && ring.length) { ring.push(ring[0]); rings.push(ring); } },
+        sphere() {},
+      }));
+      const v = { d, b: [[x0, y0], [x1, y1]], polys };
+      done.set(f, v);
+      return v;
+    }
+    let frame = null;
+    const G = {
+      proj,
+      d: obj => (obj.type === 'Feature' ? project(obj).d : memo(ds, obj, () => path(obj))),
+      // рамка всей коллекции = объединение рамок (для мира — с Антарктидой), как у fitExtent
+      frame: () => frame || (frame = (bs => [[d3.min(bs, b => b[0][0]), d3.min(bs, b => b[0][1])],
+        [d3.max(bs, b => b[1][0]), d3.max(bs, b => b[1][1])]])(spec.fc.features.map(f => project(f).b))),
+      of: f => memo(feats, f, () => {
+        const { b, polys: ps } = project(f, true), polys = ps.map(c => ({ type: 'Polygon', coordinates: c }));
+        let main = polys[0], ma = polys.length > 1 ? flat.area(main) : 0;
+        for (let i = 1; i < polys.length; i++) { const a = flat.area(polys[i]); if (a > ma) { main = polys[i]; ma = a; } }
+        return { b, size: dims(b), area: flat.area({ type: 'MultiPolygon', coordinates: ps }), c: flat.centroid(main),
+          main: polys.length > 1 ? dims(flat.bounds(main)) : dims(b) };   // без заморских частей (Франция без Гвианы)
+      }),
+      // Субъект, разрезанный по ±180° (Чукотка): контур без шва, иначе null
+      seam: f => memo(seams, f, () => {
+        const geo = f.geometry, rings = geo.type === 'MultiPolygon' ? geo.coordinates.flat() : geo.coordinates;
+        return rings.some(r => r.some(onSeam)) ? path({ type: 'MultiLineString', coordinates: cutSeam(rings) }) : null;
+      }),
+    };
+    return (GEO[spec.key] = G);
+  }
+
+  function MapView(svg, mode, view = 'game') {
+    const w = Math.max(1, svg.clientWidth), h = Math.max(1, svg.clientHeight);
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    const G = geometry(mode.geo), isCity = mode.key === 'cities';
+    const descs = isCity ? null : mode.items.map(it => G.of(it.geo));   // до рамки: объекты проецируются один раз
+    const [[x0, y0], [x1, y1]] = G.frame(), M = mode.geo.margin;
+    const f = Math.min((w - 2 * M) / (x1 - x0), (h - 2 * M) / (y1 - y0));
+    const tx = M + (w - 2 * M - f * (x1 + x0)) / 2, ty = M + (h - 2 * M - f * (y1 + y0)) / 2;
+    const P = p => [f * p[0] + tx, f * p[1] + ty];
+    const root = d3.select(svg), g = root.append('g').attr('class', 'zoomable');
+    const geo = g.append('g').attr('class', 'geo').attr('transform', `matrix(${f} 0 0 ${f} ${tx} ${ty})`);
+    const strokeCls = mode.mesh ? ' nostroke' : '';
+    const byId = new Map(mode.items.map(it => [it.id, it]));
+
+    geo.selectAll(null).data(mode.back).join('path').attr('class', 'back' + strokeCls).attr('d', G.d);
+    if (isCity) {
+      mode.items.forEach(it => { it.c = P(G.proj(it.lonlat)); it.size = 0; });
+    } else {
+      mode.items.forEach((it, i) => {
+        const c = descs[i];
+        it.size = f * c.size;
+        it.area = f * f * c.area;
+        it.c = P(c.c);
+        it.main = f * c.main;
+        it.bounds = [P(c.b[0]), P(c.b[1])];
+      });
+      // мелкие рисуем поверх крупных: так их пиксели всегда попадают под клик
+      geo.selectAll(null).data(mode.items.slice().sort((a, b) => b.size - a.size)).join('path')
+        .attr('class', 'item' + strokeCls).attr('data-id', d => d.id).attr('d', d => G.d(d.geo));
+      geo.selectAll(null).data(mode.overlay).join('path').attr('class', 'item overlay')
+        .attr('data-id', d => d.id).attr('d', d => G.d(d.feature));
+    }
+    if (mode.mesh) geo.append('path').attr('class', 'mesh').attr('d', G.d(mode.mesh));
+    // Субъект, разрезанный по ±180° (Чукотка): обводку «не найден» рисует отдельный контур без шва
+    if (mode.key === 'regions') mode.items.forEach(it => {
+      const d = G.seam(it.geo);
+      if (!d) return;
+      geo.select(`[data-id="${CSS.escape(it.id)}"]`).classed('seam', true);
+      geo.append('path').attr('class', 'outline').attr('data-of', it.id).attr('d', d);
+    });
+    if (isCity) {
+      g.selectAll(null).data(mode.items).join('circle').attr('class', 'item city').attr('data-id', d => d.id)
+        .attr('cx', d => d.c[0]).attr('cy', d => d.c[1]).attr('r', 5);
+    }
+    const labels = g.append('g').attr('class', 'labels');
+    const lbls = [];   // подписи: {el, c — якорь, box — рамка в px от экранной точки якоря, hid}
+    let revealLabel = null, beforeReveal = null;
+    let returning = null;   // куда летит карта после показа: новый показ во время полёта запомнит цель, а не середину
+    let F = null;   // кэш экранной рамки: сброс — ResizeObserver и fitFrame
+
+    const els = id => $$(`[data-id="${CSS.escape(id)}"], [data-of="${CSS.escape(id)}"]`, svg);
+    // hover на весь объект: Крым и Россия подсвечиваются вместе
+    $$('.item', svg).forEach(e => {
+      const id = e.getAttribute('data-id');
+      e.addEventListener('mouseenter', () => els(id).forEach(x => x.classList.add('hover')));
+      e.addEventListener('mouseleave', () => els(id).forEach(x => x.classList.remove('hover')));
+    });
+    const screenScale = () => frame().a;
+    function rescale() {
+      const k = d3.zoomTransform(svg).k * screenScale();
+      g.selectAll('circle.city').attr('r', 5 / k);
+      labels.attr('font-size', 14 / k).attr('stroke-width', 3 / k);
+      layoutLabels();
+    }
+    // Экранная рамка svg: масштаб и сдвиг CTM относительно её угла (не страницы — прокрутка не мешает),
+    // размер, кнопки +/− (в изучении). Читается один раз до смены размера, а не на каждое событие зума.
+    function frame() {
+      if (F) return F;
+      const r = svg.getBoundingClientRect(), m = svg.getScreenCTM() || { a: 1, e: r.left, f: r.top };
+      const btn = view !== 'study' ? [] : $$('.zoom button', svg.parentNode).map(b => {
+        const q = b.getBoundingClientRect();
+        return [q.left - r.left, q.top - r.top, q.right - r.left, q.bottom - r.top];
+      });
+      return (F = { a: m.a, ox: m.e - r.left, oy: m.f - r.top, W: r.width, H: r.height, btn });
+    }
+    const anchor = (c, F, t) => [F.a * (t.k * c[0] + t.x) + F.ox, F.a * (t.k * c[1] + t.y) + F.oy];
+    // Шрифт подписи на экране всегда 14px — её рамка относительно якоря не зависит от зума: меряем один раз
+    function measure(list) {
+      list.forEach(l => { if (l.hid) l.el.style.display = ''; });   // у скрытой рамки нет — показать на время замера
+      const f = frame(), t = d3.zoomTransform(svg), S = svg.getBoundingClientRect();
+      list.forEach(l => {
+        const r = l.el.getBoundingClientRect(), [x, y] = anchor(l.c, f, t);
+        l.box = [r.left - S.left - x, r.top - S.top - y, r.right - S.left - x, r.bottom - S.top - y];
+      });
+      list.forEach(l => { if (l.hid) l.el.style.display = 'none'; });
+    }
+    // Подписи не налезают: по порядку (подпись показа — первой) прячем ту, что задевает уже показанную.
+    // Точка города остаётся окрашенной; при зуме места больше — подпись появляется снова.
+    // В изучении кнопки +/− заняты с самого начала, а обрезанную краем карты подпись не показываем.
+    // Только арифметика: ни одного чтения DOM в цикле, записи — у тех, чей статус сменился.
+    function layoutLabels() {
+      const f = frame(), t = d3.zoomTransform(svg), study = view === 'study', shown = f.btn.slice(), changed = [];
+      const order = revealLabel ? [revealLabel, ...lbls.filter(l => l !== revealLabel)] : lbls;
+      for (const l of order) {
+        const [x, y] = anchor(l.c, f, t);
+        const r = [x + l.box[0] - 1, y + l.box[1] - 1, x + l.box[2] + 1, y + l.box[3] + 1];   // зазор 1px
+        const hide = (study && (r[0] < 0 || r[1] < 0 || r[2] > f.W || r[3] > f.H)) ||
+          shown.some(q => r[0] < q[2] && q[0] < r[2] && r[1] < q[3] && q[1] < r[3]);
+        if (!hide) shown.push(r);
+        if (hide !== l.hid) { l.hid = hide; changed.push(l); }
+      }
+      // display:none — скрытая подпись выпадает из layout: иначе браузер перекладывает её на каждом шаге зума
+      changed.forEach(l => { l.el.style.visibility = l.hid ? 'hidden' : ''; l.el.style.display = l.hid ? 'none' : ''; });
+    }
+    const zoom = d3.zoom().scaleExtent([1, 40]).translateExtent([[0, 0], [w, h]]).extent([[0, 0], [w, h]])
+      .clickDistance(5)
+      .on('zoom', e => { g.attr('transform', e.transform); rescale(); });
+    root.call(zoom).on('dblclick.zoom', null);
+    // раскраска по группам — до первого чтения рамки: иначе у путей уже есть стиль и цвет въезжает переходом fill
+    const grp = view === 'study' && window.DATA_GROUPS[mode.key];
+    if (grp) $$('.item', svg).forEach(e => {
+      const id = e.getAttribute('data-id'), c = GROUP_COLORS[grp.of[id]];
+      if (!c) throw new Error('у «' + id + '» нет группы в DATA_GROUPS');
+      e.style.fill = c;
+    });
+    rescale();
+    if (view === 'study') {   // подписи всех: сначала крупные, layoutLabels прячет налезающие
+      // сначала все подписи, потом один проход замеров — без чередования записей и чтений
+      (isCity ? mode.items : mode.items.slice().sort((a, b) => b.area - a.area)).forEach(it => addLabel(it.id, false));
+      measure(lbls);
+      layoutLabels();
+    }
+    // рамка сменила размер (раскрыли легенду, повернули телефон, svg перенесли в итог):
+    // viewBox тот же, карта сжалась — кэш рамки, шрифт и раскладку пересчитать
+    const ro = new ResizeObserver(() => {
+      if (!svg.isConnected) return ro.disconnect();
+      F = null; rescale(); measure(lbls); layoutLabels();
+    });
+    ro.observe(svg);
+    // шрифт Golos Text приходит позже запасного — ширина подписей меняется
+    const onFonts = () => {
+      if (!svg.isConnected) return document.fonts.removeEventListener('loadingdone', onFonts);
+      measure(lbls); layoutLabels();
+    };
+    if (document.fonts) document.fonts.addEventListener('loadingdone', onFonts);
+
+    function toScreen(p) {
+      const t = d3.zoomTransform(svg), m = svg.getScreenCTM();
+      const x = t.applyX(p[0]), y = t.applyY(p[1]);
+      return { x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f };
+    }
+    const isSmall = (it, s) => !isCity && it.size * s < 10;
+    function nearest(list, x, y, r) {
+      let best = null, bd = r;
+      for (const it of list) {
+        const p = toScreen(it.c), d = Math.hypot(p.x - x, p.y - y);
+        if (d <= bd) { bd = d; best = it.id; }
+      }
+      return best;
+    }
+    function smallIds() {
+      const s = screenScale() * d3.zoomTransform(svg).k;
+      return mode.items.filter(it => isSmall(it, s)).map(it => it.id);
+    }
+    // el — цель события: браузер выбрал её по дробной точке, а clientX/Y у click целые, и у границы
+    // elementFromPoint(x, y) уже в море или у соседа. Без el (хук, подсказка) — elementFromPoint.
+    function pick(x, y, el = document.elementFromPoint(x, y)) {
+      if (isCity) return nearest(mode.items, x, y, 22);
+      // Зона мелкого (r=12px) выигрывает у моря; на суше соседа-гиганта (≥20px) — только вплотную к мелкому
+      // (≤1.5px от его контура), иначе отнимает видимую сушу соседа. Средний сосед (<20px) не уступает:
+      // иначе на телефоне зоны целиком накрывают субъекты в 11–19px и их не нажать.
+      const hit = el && el.closest('[data-id]');
+      const id = hit && svg.contains(hit) ? hit.getAttribute('data-id') : null;
+      const s = screenScale() * d3.zoomTransform(svg).k;
+      if (id && byId.get(id).main * s < 20) return id;   // по главному полигону: иначе Гвиана делает Францию «гигантом»
+      const near = nearest(mode.items.filter(it => isSmall(it, s)), x, y, 12);
+      if (!near || !id) return near || id;
+      // ≤1.5px от контура мелкого (не от его рамки): рамка Эстонии накрывает берег Финляндии
+      const ring = [[0, 0], [1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5], [1.1, 1.1], [1.1, -1.1], [-1.1, 1.1], [-1.1, -1.1]];
+      return els(near).some(e => {
+        const m = e.getScreenCTM().inverse();
+        return ring.some(([dx, dy]) => e.isPointInFill(new DOMPoint(x + dx, y + dy).matrixTransform(m)));
+      }) ? near : id;
+    }
+    const setResult = (id, cls) => els(id).forEach(e => {
+      e.classList.remove('t1', 't2', 't3', 't0'); e.classList.add(cls);
+    });
+    function flash(id, n) {
+      els(id).forEach(e => {
+        e.classList.remove('flash-1', 'flash-2', 'flash-3');
+        void e.getBoundingClientRect();
+        e.classList.add('flash-' + n);
+        e.onanimationend = ev => { if (ev.animationName.startsWith('flash')) e.classList.remove('flash-' + n); };
+      });
+    }
+    function addLabel(id, now = true) {
+      const it = byId.get(id);
+      const el = labels.append('text').attr('x', it.c[0]).attr('y', it.c[1]).attr('dy', isCity ? '-0.6em' : '0.35em')
+        .attr('text-anchor', 'middle').text(it.name).node();
+      const l = { el, c: it.c, box: [0, 0, 0, 0], hid: false };
+      lbls.push(l);
+      if (now) measure([l]);
+      return l;
+    }
+    function transformTo(t, animate) {
+      return (animate ? root.transition().duration(600) : root).call(zoom.transform, t);
+    }
+    function focus(id) {
+      const it = byId.get(id);
+      let k = 4;
+      if (!isCity) {
+        const [[x0, y0], [x1, y1]] = it.bounds;
+        k = 0.4 / Math.max((x1 - x0) / w, (y1 - y0) / h);
+      }
+      k = Math.max(1.5, Math.min(6, k));
+      transformTo(d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-it.c[0], -it.c[1]), true);
+    }
+    return {
+      svg, pick, setResult, flash, focus, smallIds, toScreen,
+      item: id => byId.get(id),
+      els,
+      label: id => { addLabel(id); layoutLabels(); },
+      reveal(id) {
+        setResult(id, 't0');
+        els(id).forEach(e => e.classList.add('reveal'));
+        revealLabel = addLabel(id);
+        layoutLabels();
+        beforeReveal = returning || d3.zoomTransform(svg);
+        focus(id);
+      },
+      unreveal() {
+        $$('.reveal', svg).forEach(e => e.classList.remove('reveal'));
+        if (revealLabel) { revealLabel.el.remove(); lbls.splice(lbls.indexOf(revealLabel), 1); }
+        revealLabel = null;
+        layoutLabels();
+        if (beforeReveal) {
+          returning = beforeReveal;
+          transformTo(beforeReveal, true).on('end interrupt', () => { returning = null; });
+        }
+        beforeReveal = null;
+      },
+      zoomBy: f => zoom.scaleBy(root.transition().duration(250), f),
+      onZoomStart: fn => zoom.on('start.ui', fn),
+      onZoom: fn => zoom.on('zoom.ui', fn),   // start приходит уже на mousedown, zoom — только когда карта сдвинулась
+      fitAll: (animate = true) => transformTo(d3.zoomIdentity, animate),
+      fitFrame() {   // svg перенесли в рамку другого размера: viewBox под карту с полем 12px
+        const b = g.node().getBBox(), W = svg.clientWidth, H = svg.clientHeight;
+        if (!b.width || !b.height || W < 25 || H < 25) return;
+        const s = Math.min((W - 24) / b.width, (H - 24) / b.height), vw = W / s, vh = H / s;
+        svg.setAttribute('viewBox', `${b.x + b.width / 2 - vw / 2} ${b.y + b.height / 2 - vh / 2} ${vw} ${vh}`);
+        F = null;
+      },
+      rescale,
+    };
+  }
+
+  /* ===== 3.3 Игра ===== */
+  function Game(ids, rng = Math.random) {
+    const order = ids.slice();
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    const g = {
+      order, i: 0, errors: 0, results: {}, phase: 'ask',
+      task() { return g.phase === 'done' ? null : g.order[g.i]; },
+      answer(id) {
+        if (g.phase === 'reveal') return { type: 'next' };
+        if (g.phase !== 'ask' || id == null) return { type: 'none' };
+        const t = g.task();
+        if (id === t) {
+          g.results[t] = 3 - g.errors;
+          return { type: 'right', id: t, points: 3 - g.errors, cls: 't' + (g.errors + 1) };
+        }
+        g.errors++;
+        const ev = { type: 'wrong', n: g.errors, id };
+        if (g.errors === 3) { g.results[t] = 0; g.phase = 'reveal'; ev.reveal = t; }
+        return ev;
+      },
+      skip() {
+        if (g.phase !== 'ask') return null;
+        const t = g.task();
+        g.results[t] = 0; g.errors = 3; g.phase = 'reveal';
+        return t;
+      },
+      next() {
+        g.i++; g.errors = 0;
+        g.phase = g.i >= g.order.length ? 'done' : 'ask';
+      },
+      finish() { g.phase = 'done'; },
+      summary() {
+        const v = Object.values(g.results), c = p => v.filter(x => x === p).length;
+        const s = { c1: c(3), c2: c(2), c3: c(1), c0: c(0), max: 3 * g.order.length };
+        s.score = 3 * s.c1 + 2 * s.c2 + s.c3;
+        s.missed = Object.keys(g.results).filter(id => g.results[id] === 0);
+        return s;
+      },
+    };
+    return g;
+  }
+
+  /* ===== 3.4 Интерфейс ===== */
+  const screens = { start: $('.start'), study: $('.study'), game: $('.game'), result: $('.result') };
+  const HINT = matchMedia('(pointer: coarse)').matches
+    ? 'Разведите два пальца, чтобы приблизить; ведите одним, чтобы сдвинуть.'
+    : 'Крутите колесо, чтобы приблизить; зажмите и тяните, чтобы сдвинуть.';
+  const STUDY_HINT = key => 'Рассмотрите карту и запомните названия. Приблизьте, чтобы увидеть все подписи.' +
+    (!matchMedia('(pointer: coarse)').matches ? '' : key === 'cities' ? ' Нажмите на точку, чтобы увидеть название города.'
+      : ' Нажмите на область, чтобы увидеть её название.');
+  const CLS = { 3: 't1', 2: 't2', 1: 't3', 0: 't0' };
+  const modes = {};
+  let screen = 'start', mode = null, map = null, game = null, timer = null;
+  let lockUntil = 0;   // после верного ответа и начала показа: второй клик двойного не засчитываем
+  const LOCK_MS = 350;
+
+  function show(name) {
+    screen = name;
+    for (const k in screens) screens[k].hidden = k !== name;
+  }
+  function getMode(key) { return modes[key] || (modes[key] = buildMode(key)); }
+
+  try {
+    $$('.start .mode').forEach(b => {
+      const n = getMode(b.dataset.mode).items.length;
+      $$('[data-n]', b).forEach(e => { e.textContent = n; });
+      b.addEventListener('click', () => openStudy(b.dataset.mode));
+    });
+  } catch (e) {
+    return loadFailed(e.message);
+  }
+
+  function openStudy(key) {
+    clearTimeout(timer);
+    if (map) map.svg.remove();
+    mode = getMode(key);
+    game = null;
+    show('study');
+    $('.study .mode-title').textContent = mode.title;
+    $('.study .hint').textContent = STUDY_HINT(key);
+    const grp = window.DATA_GROUPS[key], box = $('.study .groups');
+    box.hidden = !grp;
+    box.open = matchMedia('(min-width: 720px)').matches;   // на телефоне легенда свёрнута
+    if (grp) {
+      $('summary', box).textContent = grp.title;
+      $('.legend', box).replaceChildren(...grp.order.map(name => {
+        const li = document.createElement('li');
+        li.style.setProperty('--c', GROUP_COLORS[name]);
+        li.textContent = name;
+        return li;
+      }));
+    }
+    tip.hidden = true;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'Карта');
+    $('.study .map').prepend(svg);
+    try {
+      map = MapView(svg, mode, 'study');   // после show и легенды: MapView берёт размер видимой рамки
+    } catch (e) {
+      svg.remove(); map = null;
+      show('start');
+      return loadFailed(e.message);
+    }
+    svg.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') showTip(e); });
+    svg.addEventListener('click', showTip);
+    svg.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') tip.hidden = true; });
+    map.onZoomStart(() => { tip.hidden = true; });   // карта сдвинулась — подсказка оказалась бы над чужой областью
+  }
+  // Подсказка с названием под пальцем/курсором, зажата в рамку карты
+  const tip = $('.study .tip');
+  // Подсказка — только объект под курсором/пальцем; зона мелкого и ближайший город — над морем/пустотой
+  function tipId(x, y, el) {
+    const hit = el && el.closest('[data-id]');
+    return hit && map.svg.contains(hit) ? hit.getAttribute('data-id') : map.pick(x, y, el);
+  }
+  function showTip(e) {
+    const id = tipId(e.clientX, e.clientY, e.target);
+    if (!id) { tip.hidden = true; return; }
+    placeTip(tip, e.clientX, e.clientY, map.item(id).name);
+  }
+  // +12px от точки, зажата в рамку карты; задевает кнопки +/− — уходит влево, затем вверх от точки
+  function placeTip(el, cx, cy, text) {
+    el.textContent = text;
+    el.hidden = false;
+    const box = el.parentNode.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    const px = cx - box.left, py = cy - box.top;
+    const fit = (v, size, max) => Math.max(4, Math.min(v, max - size - 4));
+    let x = fit(px + 12, w, box.width), y = fit(py + 12, h, box.height);
+    const zoomed = () => $$('.zoom button', el.parentNode).some(b => {
+      const q = b.getBoundingClientRect();
+      return box.left + x < q.right && q.left < box.left + x + w && box.top + y < q.bottom && q.top < box.top + y + h;
+    });
+    if (zoomed()) x = fit(px - 12 - w, w, box.width);
+    if (zoomed()) y = fit(py - 12 - h, h, box.height);
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  }
+  // Подсказка игры: название неверного объекта у точки клика, 1,5 с
+  const gameTip = $('.game .tip');
+  let tipTimer = null;
+  function hideGameTip() { clearTimeout(tipTimer); gameTip.hidden = true; }
+
+  function startMode(key, order) {
+    clearTimeout(timer);
+    hideGameTip();
+    if (map) map.svg.remove();
+    mode = getMode(key);
+    game = Game(mode.items.map(it => it.id));
+    if (order) game.order = order.concat(game.order.filter(id => !order.includes(id)));
+    show('game');
+    setStatus(HINT);
+    renderHud();
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'Карта');
+    $('.game .map').prepend(svg);
+    try {
+      map = MapView(svg, mode);   // после show: MapView берёт размер видимой рамки
+    } catch (e) {
+      svg.remove(); map = null;
+      show('start');
+      return loadFailed(e.message);
+    }
+    svg.addEventListener('click', onMapClick);
+    map.onZoom(hideGameTip);   // карта сдвинулась — подпись оказалась бы над чужим местом
+  }
+
+  function setStatus(text) { $('.game .status').textContent = text; }
+  function renderHud() {
+    const s = game.summary();
+    $('.task b').textContent = game.task() || '';
+    $$('.tries i').forEach((dot, i) => {
+      dot.className = i < game.errors ? 'used u' + (i + 1) : '';
+    });
+    $('.tries').setAttribute('aria-label', `Осталось попыток: ${3 - game.errors} из 3`);
+    $('.game .found').textContent = s.c1 + s.c2 + s.c3;
+    $('.game .total').textContent = game.order.length;
+    $('.game .points').textContent = s.score;
+  }
+
+  function onMapClick(e) {
+    if (performance.now() < lockUntil) return;
+    const ev = game.answer(game.phase === 'ask' ? map.pick(e.clientX, e.clientY, e.target) : null);
+    if (ev.type === 'none') return;   // море: ни статус, ни подсказку не трогаем
+    hideGameTip();
+    if (ev.type === 'next') { lockUntil = performance.now() + LOCK_MS; return advance(); }
+    if (ev.type === 'right') {
+      map.setResult(ev.id, ev.cls);
+      if (mode.key === 'cities') map.label(ev.id);
+      setStatus('Верно! +' + ev.points);
+      lockUntil = performance.now() + LOCK_MS;
+      return advance();
+    }
+    if (ev.type === 'wrong') {
+      map.flash(ev.id, ev.n);
+      const name = map.item(ev.id).name;
+      if (ev.reveal) return startReveal(ev.reveal, name);
+      placeTip(gameTip, e.clientX, e.clientY, name);
+      tipTimer = setTimeout(hideGameTip, 1500);
+      setStatus(ev.n === 1 ? `Не здесь: это ${name}. Осталось 2 попытки.` : `Снова мимо: это ${name}. Последняя попытка.`);
+      renderHud();
+    }
+  }
+  function startReveal(id, wrongName) {
+    hideGameTip();
+    lockUntil = performance.now() + LOCK_MS;
+    map.reveal(id);
+    setStatus((wrongName ? `Вы нажали: ${wrongName}. ` : '') + 'Вот где: ' + map.item(id).name);
+    renderHud();
+    timer = setTimeout(advance, 2500);
+  }
+  function advance() {
+    clearTimeout(timer);
+    hideGameTip();
+    if (game.phase === 'reveal') { map.unreveal(); setStatus(''); }   // «Вот где: …» относится к прошлому заданию
+    game.next();
+    if (game.phase === 'done') return showResult();
+    renderHud();
+  }
+  function finish() {
+    clearTimeout(timer);
+    hideGameTip();
+    if (game.phase === 'reveal') map.unreveal();
+    game.finish();
+    showResult();
+  }
+
+  function showResult() {
+    show('result');
+    $('.result .map').prepend(map.svg);
+    map.fitAll(false);
+    map.fitFrame();
+    map.rescale();
+    const s = game.summary();
+    $('.result .mode-title').textContent = mode.title;
+    $('.result .big').textContent = s.score;
+    $('.result .max').textContent = s.max;
+    $('.result .pct').textContent = Math.round(s.score / s.max * 100) + '%';
+    const counts = [s.c1, s.c2, s.c3, s.c0];
+    $$('.result .counts .num').forEach((e, i) => { e.textContent = counts[i]; });
+    $$('.result .bar4 i').forEach((e, i) => { e.style.flex = counts[i]; });
+    const box = $('.result .missed');
+    box.textContent = '';
+    if (s.missed.length) {
+      const h = document.createElement('h3');
+      h.className = 'lbl';
+      h.textContent = 'Стоит повторить:';
+      const ul = document.createElement('ul');
+      s.missed.forEach(id => {
+        const li = document.createElement('li');
+        li.textContent = map.item(id).name;
+        ul.append(li);
+      });
+      box.append(h, ul);
+    } else if (!Object.keys(game.results).length || s.c1 + s.c2 + s.c3 === game.order.length) {
+      // похвала — только за весь режим; без единого ответа — честно об этом
+      const p = document.createElement('p');
+      p.textContent = s.c1 + s.c2 + s.c3 === game.order.length ? 'Вы нашли всё. Отличная работа!' : 'Вы не ответили ни на одно задание.';
+      box.append(p);
+    }
+  }
+
+  $$('.zoom button').forEach(b => b.addEventListener('click', () => map.zoomBy(b.dataset.zoom === 'in' ? 1.6 : 1 / 1.6)));
+  $$('[data-act="fit"]').forEach(b => b.addEventListener('click', () => map.fitAll()));
+  $('[data-act="skip"]').addEventListener('click', () => {
+    if (game.phase === 'reveal') return advance();
+    const t = game.skip();
+    if (t) startReveal(t);
+  });
+  $('[data-act="finish"]').addEventListener('click', finish);
+  $('[data-act="again"]').addEventListener('click', () => openStudy(mode.key));
+  $('[data-act="play"]').addEventListener('click', () => startMode(mode.key));
+  $('[data-act="back"]').addEventListener('click', () => show('start'));
+  $('[data-act="modes"]').addEventListener('click', () => show('start'));
+
+  /* ===== 3.5 Тестовый хук ===== */
+  window.__game = {
+    state() {
+      const t = map ? d3.zoomTransform(map.svg) : d3.zoomIdentity;
+      const s = game ? game.summary() : {};
+      return {
+        screen, mode: mode && mode.key, task: game && game.task(), errors: game && game.errors,
+        found: game ? s.c1 + s.c2 + s.c3 : 0, total: game ? game.order.length : 0, score: s.score || 0,
+        phase: game && game.phase, results: game ? { ...game.results } : {}, k: t.k, x: t.x, y: t.y,
+      };
+    },
+    start(key, order) { startMode(key, order); },
+    study(key) { openStudy(key); },
+    names: () => mode.items.map(it => it.id),
+    small: () => map.smallIds(),
+    pick: (x, y, el) => map.pick(x, y, el),
+    tipAt: (x, y, el) => tipId(x, y, el),
+    tip: () => ({ text: gameTip.textContent, hidden: gameTip.hidden, rect: gameTip.getBoundingClientRect().toJSON() }),
+    cls: id => map.els(id)[0].getAttribute('class'),
+    point(id) {
+      const a = map.toScreen(map.item(id).c);
+      const p = { x: Math.round(a.x), y: Math.round(a.y) };
+      if (map.pick(p.x, p.y) === id) return p;
+      const box = map.svg.getBoundingClientRect();
+      const rs = map.els(id).map(e => e.getBoundingClientRect());
+      const x0 = Math.max(box.left, Math.min(...rs.map(r => r.left))), x1 = Math.min(box.right, Math.max(...rs.map(r => r.right)));
+      const y0 = Math.max(box.top, Math.min(...rs.map(r => r.top))), y1 = Math.min(box.bottom, Math.max(...rs.map(r => r.bottom)));
+      let best = null, bd = Infinity;
+      for (let x = Math.ceil(x0); x <= x1; x += 2) {
+        for (let y = Math.ceil(y0); y <= y1; y += 2) {
+          const d = Math.hypot(x - a.x, y - a.y);
+          if (d < bd && map.pick(x, y) === id) { bd = d; best = { x, y }; }
+        }
+      }
+      return best;
+    },
+    seaPoint() {
+      const b = map.svg.getBoundingClientRect();
+      for (let y = Math.ceil(b.top) + 4; y < b.bottom; y += 10) {
+        for (let x = Math.ceil(b.left) + 4; x < b.right; x += 10) {
+          if (map.pick(x, y) === null && document.elementFromPoint(x, y) === map.svg) return { x, y };
+        }
+      }
+      return null;
+    },
+  };
+})();
+</script>
+</body>
+</html>

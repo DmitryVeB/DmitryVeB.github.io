@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пирожные — витрина</title>
+<style>
+  :root {
+    --bg: #080c14;
+    --card: #111a29;
+    --line: #1f2b40;
+    --text: #c8d3e0;
+    --muted: #8a97a8;
+    --head: #e6edf5;
+    --gold: #b8933a;
+    --violet: #7a67b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 16px 170px; }
+
+  header { text-align: center; padding: 52px 0 36px; }
+  .tag { font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--violet); }
+  h1 { font-size: clamp(30px, 8vw, 46px); line-height: 1.15; color: var(--head); margin: 10px 0 10px; }
+  .lead { color: var(--muted); }
+
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (min-width: 720px) { .grid { grid-template-columns: repeat(3, 1fr); gap: 18px; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 22px 14px 20px; text-align: center;
+    transition: transform .15s, border-color .15s;
+  }
+  .card:hover { transform: translateY(-3px); border-color: var(--violet); }
+  .emoji {
+    font-size: 52px; line-height: 1; width: 88px; height: 88px; margin: 0 auto 14px;
+    display: flex; align-items: center; justify-content: center;
+    background: #18233a; border-radius: 50%;
+  }
+  .name { font-size: 16px; font-weight: 600; color: var(--head); min-height: 48px; }
+  .price { font-size: 26px; font-weight: 700; color: var(--gold); margin-top: 8px; }
+
+  .ctrl { margin-top: 14px; height: 44px; }
+  button {
+    font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+    border: 0; border-radius: 10px; color: #fff;
+  }
+  .add { width: 100%; height: 44px; background: var(--violet); }
+  .add:hover { background: #6a58a6; }
+  .qty { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .qty button { width: 44px; height: 44px; font-size: 22px; background: #1f2b40; }
+  .qty button:hover { background: #2a3a55; }
+  .qty span { font-size: 24px; font-weight: 700; color: var(--head); }
+
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: #0e1522; border-top: 1px solid var(--line);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  }
+  .bar[hidden] { display: none; }
+  .bar-in { max-width: 948px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .bar-sum { font-size: 24px; font-weight: 700; color: var(--gold); }
+  .bar-cnt { font-size: 14px; color: var(--muted); }
+  .clear { height: 44px; padding: 0 18px; background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .clear:hover { color: var(--text); border-color: var(--muted); }
+  .bar-btns { display: flex; gap: 8px; }
+  .bar-btns button { padding: 0 14px; }
+  @media (max-width: 360px) {
+    .bar-btns { gap: 6px; } .bar-btns button { padding: 0 9px; }
+    .card { padding-left: 8px; padding-right: 8px; }
+    .qty { gap: 4px; } .qty button { width: 38px; }
+  }
+  .bar-in { flex-wrap: wrap; }
+  .bar-btns { margin-left: auto; }
+  .order { height: 44px; background: #4a9e6a; }
+  .order:hover { background: #3f8a5c; }
+
+  dialog {
+    width: min(440px, calc(100% - 32px)); max-height: calc(100% - 32px); margin: auto;
+    background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 16px;
+    padding: 22px 20px;
+  }
+  dialog::backdrop { background: rgba(4, 7, 12, .75); }
+  .dlg-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .dlg-head h2 { font-size: 20px; color: var(--head); }
+  .x { width: 40px; height: 40px; font-size: 22px; background: transparent; color: var(--muted); }
+  .x:hover { color: var(--head); }
+  .items { list-style: none; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .items li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 15px; }
+  .items b { color: var(--head); font-weight: 600; white-space: nowrap; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0 18px; }
+  .total span { color: var(--muted); font-size: 15px; }
+  .total b { font-size: 26px; color: var(--gold); }
+  label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 14px; }
+  input {
+    display: block; width: 100%; margin-top: 6px; height: 46px; padding: 0 12px;
+    font: inherit; font-size: 16px; color: var(--head);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  }
+  input:focus { outline: none; border-color: var(--violet); }
+  input.bad { border-color: #b85555; }
+  .err { display: block; min-height: 18px; margin-top: 4px; font-size: 14px; color: #b85555; }
+  .send { width: 100%; height: 48px; font-size: 16px; background: var(--violet); }
+  .send:hover { background: #6a58a6; }
+  .thanks { text-align: center; padding: 18px 0 6px; }
+  .thanks .big { font-size: 48px; }
+  .thanks h2 { font-size: 26px; color: var(--head); margin: 6px 0 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="tag">Кондитерская</div>
+    <h1>Свежие пирожные</h1>
+    <p class="lead">Выберите любимое — печём каждый день</p>
+  </header>
+
+  <main class="grid">
+    <div class="card"><div class="emoji">🍰</div><div class="name">Клубничный чизкейк</div><div class="price">320 ₽</div></div>
+    <div class="card"><div class="emoji">🧁</div><div class="name">Капкейк с ванилью</div><div class="price">180 ₽</div></div>
+    <div class="card"><div class="emoji">🍩</div><div class="name">Пончик в глазури</div><div class="price">120 ₽</div></div>
+    <div class="card"><div class="emoji">🥐</div><div class="name">Круассан с миндалём</div><div class="price">210 ₽</div></div>
+    <div class="card"><div class="emoji">🍫</div><div class="name">Шоколадный брауни</div><div class="price">190 ₽</div></div>
+    <div class="card"><div class="emoji">🥧</div><div class="name">Тарт с ягодами</div><div class="price">260 ₽</div></div>
+  </main>
+</div>
+
+<div class="bar" id="bar" hidden>
+  <div class="bar-in">
+    <div>
+      <div class="bar-cnt">🛒 <span id="cnt">0</span> шт.</div>
+      <div class="bar-sum"><span id="sum">0</span> ₽</div>
+    </div>
+    <div class="bar-btns">
+      <button class="clear" id="clear">Очистить</button>
+      <button class="order" id="order">Заказать</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <div id="step-form">
+    <div class="dlg-head">
+      <h2>Ваш заказ</h2>
+      <button class="x" data-close aria-label="Закрыть">×</button>
+    </div>
+    <ul class="items" id="items"></ul>
+    <div class="total"><span id="d-cnt"></span><b id="d-sum"></b></div>
+    <form id="form" novalidate>
+      <label>Ваше имя
+        <input id="name" autocomplete="name">
+        <span class="err" id="name-err"></span>
+      </label>
+      <label>Телефон
+        <input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 900 000-00-00">
+        <span class="err" id="phone-err"></span>
+      </label>
+      <button class="send" type="submit">Отправить заказ</button>
+    </form>
+  </div>
+  <div class="thanks" id="step-thanks" hidden>
+    <div class="big">🎉</div>
+    <h2>Спасибо!</h2>
+    <button class="send" data-close>Закрыть</button>
+  </div>
+</dialog>
+
+<script>
+  const cart = new Map();                         // карточка → количество
+  const cards = document.querySelectorAll(".card");
+  const fmt = n => n.toLocaleString("ru-RU");
+
+  function render() {
+    let cnt = 0, sum = 0;
+    cards.forEach(card => {
+      const q = cart.get(card) || 0;
+      cnt += q;
+      sum += q * card.price;
+      card.ctrl.innerHTML = q
+        ? `<div class="qty"><button data-d="-1" aria-label="Убрать одно">−</button><span>${q}</span><button data-d="1" aria-label="Добавить ещё">+</button></div>`
+        : `<button class="add" data-d="1">В корзину</button>`;
+    });
+    document.getElementById("cnt").textContent = cnt;
+    document.getElementById("sum").textContent = fmt(sum);
+    document.getElementById("bar").hidden = cnt === 0;
+  }
+
+  cards.forEach(card => {
+    card.price = parseInt(card.querySelector(".price").textContent.replace(/\D/g, ""), 10);
+    card.ctrl = card.appendChild(document.createElement("div"));
+    card.ctrl.className = "ctrl";
+    card.ctrl.addEventListener("click", e => {
+      const d = Number(e.target.dataset.d);
+      if (!d) return;
+      const q = (cart.get(card) || 0) + d;
+      q > 0 ? cart.set(card, q) : cart.delete(card);
+      render();
+    });
+  });
+
+  document.getElementById("clear").addEventListener("click", () => { cart.clear(); render(); });
+
+  const dlg = document.getElementById("dlg");
+  const form = document.getElementById("form");
+  const $ = id => document.getElementById(id);
+
+  $("order").addEventListener("click", () => {
+    let cnt = 0, sum = 0;
+    $("items").innerHTML = "";
+    cart.forEach((q, card) => {
+      cnt += q;
+      sum += q * card.price;
+      const li = document.createElement("li");
+      li.innerHTML = `<span></span><b>${fmt(q * card.price)} ₽</b>`;
+      li.firstChild.textContent = `${card.querySelector(".emoji").textContent} ${card.querySelector(".name").textContent} × ${q}`;
+      $("items").appendChild(li);
+    });
+    $("d-cnt").textContent = `Итого: ${cnt} шт.`;
+    $("d-sum").textContent = `${fmt(sum)} ₽`;
+    form.reset();
+    ["name", "phone"].forEach(f => { $(f).classList.remove("bad"); $(f + "-err").textContent = ""; });
+    $("step-form").hidden = false;
+    $("step-thanks").hidden = true;
+    dlg.showModal();
+  });
+
+  function check(field, msg) {
+    $(field).classList.toggle("bad", !!msg);
+    $(field + "-err").textContent = msg;
+    return !msg;
+  }
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const okName = check("name", $("name").value.trim() ? "" : "Введите имя");
+    const digits = $("phone").value.replace(/\D/g, "").length;
+    const okPhone = check("phone", digits >= 10 && digits <= 12 ? "" : "Введите номер полностью, например +7 900 000-00-00");
+    if (!okName || !okPhone) return;
+    $("step-form").hidden = true;
+    $("step-thanks").hidden = false;
+    cart.clear();
+    render();
+  });
+
+  dlg.addEventListener("click", e => {
+    const r = dlg.getBoundingClientRect();
+    const outside = e.target === dlg && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom);
+    if (outside || e.target.hasAttribute("data-close")) dlg.close();   // клик по фону или крестик
+  });
+  render();
+</script>
+</body>
+</html>

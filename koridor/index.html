@@ -1,0 +1,684 @@
+<meta charset="utf-8">
+<title>Коридор 50</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Golos+Text:wght@400;600&family=PT+Mono&display=swap&subset=cyrillic">
+<style>
+/* Тёмный отель: коридор на canvas слева, таблица рекордов справа; на телефоне — одна колонка */
+:root {
+  --bg: #080c14; --panel: #0e1420; --line: #1d2635; --fg: #c8d3e0; --muted: #8a96aa;
+  --green: #4a9e6a; --blue: #4a7eaa; --purple: #7a67b8; --yellow: #b8933a; --red: #b85555;
+  --display: "Oswald", "Arial Narrow", sans-serif;
+  --body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --mono: "PT Mono", ui-monospace, "Courier New", monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--body); font-size: 15px; line-height: 1.5; padding-block: 24px; padding-inline: 16px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 20px; }
+header h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 5vw, 44px); letter-spacing: .08em; text-transform: uppercase; margin: 0; line-height: 1.1; text-wrap: balance; }
+header h1 span { color: var(--yellow); }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 65ch; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.game { display: grid; gap: 10px; min-width: 0; }
+.hud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
+.stat { display: flex; align-items: baseline; gap: 8px; }
+.stat small { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.stat b { font-family: var(--mono); font-weight: 400; font-size: 26px; font-variant-numeric: tabular-nums; }
+.bar { flex: 1 1 140px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--yellow); transition: width .3s; }
+button { font: inherit; cursor: pointer; }
+.ghost { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 6px 12px; font-size: 14px; }
+.ghost:hover { color: var(--fg); border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.screen { position: relative; display: grid; gap: 10px; }
+.stage { position: relative; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #000; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.overlay { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; background: rgba(8, 12, 20, .78); border-radius: 10px; }
+.overlay h2 { font-family: var(--display); font-size: 34px; letter-spacing: .06em; text-transform: uppercase; margin: 0; text-wrap: balance; }
+.overlay h2.win { color: var(--green); }
+.overlay h2.lose { color: var(--red); }
+.overlay p { margin: 0; max-width: 46ch; }
+.overlay .note { color: var(--muted); font-size: 14px; }
+.field { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
+.field label { color: var(--muted); font-size: 14px; }
+.field input { font: inherit; font-size: 16px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; width: 180px; }
+.primary { background: var(--yellow); color: #120d06; border: 0; border-radius: 6px; padding: 10px 24px; font-family: var(--display); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
+.primary:hover { filter: brightness(1.1); }
+@media (max-width: 640px) {
+  .overlay { position: static; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .overlay h2 { font-size: 26px; }
+}
+.keys { color: var(--muted); font-size: 14px; margin: 0; }
+kbd { font-family: var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 6px; color: var(--fg); }
+.touch { display: none; grid-template-columns: 1fr 1fr 1.4fr; gap: 10px; }
+.touch button { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 22px 0; font-size: 22px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
+.touch button:active { background: var(--line); }
+.touch #btn-act { color: var(--yellow); font-family: var(--display); font-size: 18px; letter-spacing: .06em; text-transform: uppercase; }
+body[data-device="phone"] .touch { display: grid; }
+body[data-device="phone"] .keys { display: none; }
+.device { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; }
+.device > span { color: var(--muted); font-size: 14px; flex-basis: 100%; }
+.device label { position: relative; }
+.device input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.device label span { display: block; border: 1px solid var(--line); border-radius: 6px; padding: 8px 16px; color: var(--muted); background: var(--panel); }
+.device input:checked + span { border-color: var(--yellow); color: var(--fg); background: rgba(184, 147, 58, .14); }
+.device input:focus-visible + span { outline: 2px solid var(--yellow); outline-offset: 2px; }
+aside { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+aside h3 { font-family: var(--display); font-size: 22px; letter-spacing: .08em; text-transform: uppercase; margin: 0; }
+.src { color: var(--muted); font-size: 14px; margin: 2px 0 12px; }
+ol.board { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+ol.board li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+ol.board li.me { background: rgba(184, 147, 58, .14); }
+.rank { font-family: var(--mono); color: var(--muted); font-size: 14px; }
+.who { display: grid; min-width: 0; line-height: 1.25; }
+.nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dev { font-size: 14px; color: var(--muted); }
+.dr { font-family: var(--mono); font-size: 24px; line-height: 1; }
+.dr.won { color: var(--green); }
+.tm { font-family: var(--mono); font-size: 14px; color: var(--muted); min-width: 40px; text-align: right; }
+.empty { color: var(--muted); font-size: 14px; margin: 0; }
+.err { color: var(--red); font-size: 14px; margin: 10px 0 0; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Коридор <span>50</span></h1>
+    <p>Откройте 50 дверей подряд. Когда свет начинает мигать — бегите к шкафу и прячьтесь, пока монстр не пролетит.</p>
+  </header>
+  <div class="main">
+    <section class="game">
+      <div class="hud">
+        <div class="stat"><small>Двери</small><b id="hud-doors">0 / 50</b></div>
+        <div class="stat"><small>Время</small><b id="hud-time">0:00</b></div>
+        <div class="bar" aria-hidden="true"><i id="hud-bar"></i></div>
+        <button class="ghost" id="btn-sound" type="button">Звук: вкл</button>
+      </div>
+      <div class="screen">
+        <div class="stage">
+          <canvas id="game" width="960" height="540" aria-label="Игровое поле"></canvas>
+        </div>
+        <div class="overlay" id="overlay">
+          <h2 id="ov-title">Коридор 50</h2>
+          <p id="ov-text">Персонаж идёт по бесконечному отелю. Каждые несколько дверей по коридору проносится монстр. Успейте спрятаться в шкаф.</p>
+          <div class="field">
+            <label for="player-name">Ваше имя</label>
+            <input id="player-name" maxlength="16" autocomplete="off">
+          </div>
+          <div class="device" role="radiogroup" aria-label="Устройство">
+            <span>Играю на</span>
+            <label><input type="radio" name="device" id="device-pc" value="pc"><span>Компьютере</span></label>
+            <label><input type="radio" name="device" id="device-phone" value="phone"><span>Телефоне</span></label>
+          </div>
+          <button class="primary" id="btn-start" type="button">Начать</button>
+          <p class="note" id="ov-note"></p>
+        </div>
+      </div>
+      <p class="keys"><kbd>←</kbd> <kbd>→</kbd> или <kbd>Ф</kbd> <kbd>В</kbd> — идти · <kbd>У</kbd> или <kbd>Пробел</kbd> — открыть дверь, спрятаться в шкаф и выйти из него</p>
+      <div class="touch">
+        <button id="btn-left" type="button" aria-label="Влево">◀</button>
+        <button id="btn-right" type="button" aria-label="Вправо">▶</button>
+        <button id="btn-act" type="button">Действие</button>
+      </div>
+    </section>
+    <aside>
+      <h3>Рекорды</h3>
+      <p class="src" id="board-src">На этом устройстве</p>
+      <ol class="board" id="board"></ol>
+      <p class="empty" id="board-empty">Пока пусто. Сыграйте первым — результат появится здесь.</p>
+      <p class="err" id="board-err" hidden></p>
+    </aside>
+  </div>
+</div>
+
+<script>
+const W = 960, H = 540, FLOOR = 440, ROOM_W = 1100, DOORS = 50, SPEED = 260, MONSTER_SPEED = 2100;
+const $ = id => document.getElementById(id);
+const cv = $('game'), ctx = cv.getContext('2d');
+const dpr = Math.min(2, window.devicePixelRatio || 1);
+cv.width = W * dpr; cv.height = H * dpr;
+
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const doorX = k => (k + 1) * ROOM_W - 80;           // дверь, ведущая из комнаты k
+const minX = r => r === 0 ? 60 : doorX(r - 1) + 70;  // дверь за спиной захлопнута
+const fmtTime = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+
+// ---------- состояние игры ----------
+let state = 'menu', rooms = [], room = 0, px = 200, face = 1, hidden = false;
+let walkT = 0, stepT = 0, elapsed = 0, camX = 0;
+let doorOpen = false, doorAnim = 0, warn = null, monster = null;
+let lit = 1, litT = 0, fake = 0, shake = 0, deathT = 0, msg = '', msgT = 0;
+const keys = { left: false, right: false };
+
+function genRooms() {
+  rooms = [];
+  let next = 3;                                      // первый монстр за третьей дверью
+  for (let r = 0; r < DOORS; r++) {
+    const lo = minX(r) + 70, hi = doorX(r) - 220;
+    const R = { wx: rand(lo, hi), monster: false, done: false, fakeX: null };
+    if (r === next) {
+      R.monster = true;
+      R.warnDur = 3.2 - 1.4 * (r / DOORS);           // чем дальше, тем меньше времени
+      R.trig = rand(minX(r) + 120, doorX(r) - 200);
+      const reach = SPEED * (R.warnDur - 0.7);       // шкаф всегда успеваем добежать
+      R.wx = clamp(R.trig + rand(-reach, reach), lo, hi);
+      next = r + 2 + Math.floor(Math.random() * 3);  // следующий через 2–4 двери
+    } else if (r > 0 && Math.random() < 0.25) {
+      R.fakeX = rand(minX(r) + 100, doorX(r) - 200); // ложная тревога: свет мигнул и всё
+    }
+    rooms.push(R);
+  }
+}
+
+// ---------- звук (синтез, без файлов) ----------
+let AC = null, master = null, noiseBuf = null, drone = null, warnSnd = null;
+let muted = false;
+try { muted = localStorage.getItem('k50.muted') === '1'; } catch (e) {}
+
+function audioInit() {
+  if (AC) { AC.resume(); return; }
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); }
+  catch (e) { console.warn('Звук недоступен:', e); return; }
+  master = AC.createGain(); master.gain.value = muted ? 0 : 0.8; master.connect(AC.destination);
+  noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+}
+function env(g, t, a, peak, dec) {
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + a);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + a + dec);
+}
+function noise(dur, type, freq, q, peak, attack = 0.005) {
+  const t = AC.currentTime, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  s.buffer = noiseBuf; s.loop = true; f.type = type; f.frequency.value = freq; f.Q.value = q;
+  env(g, t, attack, peak, dur);
+  s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + attack + dur + 0.05);
+  return { f, t };
+}
+function tone(type, f0, f1, dur, peak, attack = 0.01, when = 0) {
+  const t = AC.currentTime + when, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t);
+  if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  env(g, t, attack, peak, dur);
+  o.connect(g).connect(master); o.start(t); o.stop(t + attack + dur + 0.05);
+}
+const sfx = {
+  step() { noise(0.07, 'bandpass', rand(220, 360), 1.2, 0.22); },
+  door() { tone('sawtooth', 230, 120, 0.6, 0.05, 0.08); tone('sawtooth', 241, 104, 0.6, 0.04, 0.1); tone('sine', 80, 50, 0.25, 0.4, 0.005, 0.55); },
+  slam() { noise(0.25, 'lowpass', 500, 0.7, 0.5); tone('sine', 70, 40, 0.3, 0.5); },
+  wardrobe() { tone('triangle', 180, 120, 0.08, 0.3); tone('triangle', 150, 100, 0.1, 0.25, 0.005, 0.09); },
+  locked() { tone('square', 90, 85, 0.1, 0.07); tone('square', 90, 85, 0.1, 0.07, 0.005, 0.14); },
+  buzz() { noise(0.35, 'highpass', 3000, 0.5, 0.05); tone('sawtooth', 100, 100, 0.35, 0.03); },
+  warnStart(dur) {
+    const t = AC.currentTime, f = AC.createBiquadFilter(), g = AC.createGain();
+    f.type = 'lowpass'; f.frequency.value = 140;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.6, t + dur);
+    const os = [38, 41.5].map(fr => { const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = fr; o.connect(f); o.start(t); return o; });
+    f.connect(g).connect(master);
+    warnSnd = { g, os };
+    for (let tt = 0, gap = 0.7; tt < dur; tt += gap, gap = Math.max(0.28, gap * 0.85))   // сердце бьётся всё чаще
+      tone('sine', 62, 40, 0.14, 0.5, 0.005, tt);
+  },
+  stopWarn() {
+    if (!warnSnd) return;
+    const t = AC.currentTime;
+    warnSnd.g.gain.cancelScheduledValues(t); warnSnd.g.gain.setValueAtTime(warnSnd.g.gain.value, t);
+    warnSnd.g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    warnSnd.os.forEach(o => o.stop(t + 0.7)); warnSnd = null;
+  },
+  rush() {
+    const { f, t } = noise(1.0, 'bandpass', 300, 1.5, 0.9, 0.12);
+    f.frequency.setValueAtTime(200, t); f.frequency.exponentialRampToValueAtTime(2400, t + 0.45); f.frequency.exponentialRampToValueAtTime(250, t + 1.1);
+    tone('sawtooth', 520, 160, 0.9, 0.1, 0.05);
+  },
+  death() { [110, 116.5, 155.6].forEach(fr => tone('sawtooth', fr, fr / 2, 1.6, 0.13, 0.01)); noise(1.2, 'lowpass', 900, 0.7, 0.6); },
+  win() { [523, 659, 784, 1047].forEach((fr, i) => tone('triangle', fr, fr, 0.7, 0.2, 0.01, i * 0.14)); },
+  droneStart() {
+    sfx.droneStop();
+    const t = AC.currentTime, g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.05, t + 2);
+    const os = [55, 82.4].map(fr => { const o = AC.createOscillator(); o.frequency.value = fr; o.connect(g); o.start(t); return o; });
+    g.connect(master); drone = { g, os };
+  },
+  droneStop() {
+    if (!drone) return;
+    const t = AC.currentTime; drone.g.gain.setValueAtTime(drone.g.gain.value, t);
+    drone.g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5); drone.os.forEach(o => o.stop(t + 0.6)); drone = null;
+  },
+};
+function play(name, ...args) { if (AC) sfx[name](...args); }
+
+// ---------- рекорды ----------
+const LS_KEY = 'k50.scores';
+const DEVICE_NAMES = { pc: 'компьютер', phone: 'телефон' };
+let device = 'pc';
+function setDevice(d) {
+  device = d;
+  document.body.dataset.device = d;                  // от него зависят экранные кнопки и подсказки
+  $('device-' + d).checked = true;
+}
+let db = null, shared = null, lastRec = null, sharedFailed = false;  // не записалось в общую — показываем свою
+const byRank = (a, b) => (b.doors - a.doors) || (a.time - b.time);
+
+function loadLocal() {
+  try { const v = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); return Array.isArray(v) ? v : []; }
+  catch (e) { return []; }
+}
+function clean(r) {
+  if (!r || typeof r !== 'object') return null;
+  const doors = Number(r.doors), time = Number(r.time);
+  if (r.doors == null || r.time == null || !Number.isFinite(doors) || !Number.isFinite(time)
+      || doors < 0 || doors > DOORS || time <= 0) return null;
+  return { name: String(r.name || 'Игрок').slice(0, 16), doors: Math.floor(doors), time, at: Number(r.at) || 0,
+           device: DEVICE_NAMES[r.device] ? r.device : null };   // у старых записей устройства нет
+}
+function showBoardError(text) { const e = $('board-err'); e.textContent = text; e.hidden = !text; }
+
+function renderBoard() {
+  const useShared = shared && !sharedFailed;
+  const list = (useShared ? shared : loadLocal()).map(clean).filter(Boolean).sort(byRank).slice(0, 10);
+  $('board-src').textContent = useShared ? 'Общая таблица всех игроков' : 'На этом устройстве';
+  const ol = $('board'); ol.replaceChildren();
+  $('board-empty').hidden = list.length > 0;
+  list.forEach((r, i) => {
+    const li = document.createElement('li');
+    if (lastRec && r.at === lastRec.at && r.name === lastRec.name) li.className = 'me';
+    const span = (cls, text) => { const s = document.createElement('span'); s.className = cls; s.textContent = text; return s; };
+    const who = span('who', '');
+    who.append(span('nm', r.name));
+    if (r.device) who.append(span('dev', DEVICE_NAMES[r.device]));
+    li.append(span('rank', i + 1), who, span(r.doors === DOORS ? 'dr won' : 'dr', r.doors), span('tm', fmtTime(r.time)));
+    if (r.doors === DOORS) li.title = 'Выбрался из отеля';
+    ol.append(li);
+  });
+}
+
+async function saveScore(rec) {
+  lastRec = rec;
+  try { localStorage.setItem(LS_KEY, JSON.stringify(loadLocal().concat(rec).sort(byRank).slice(0, 50))); }
+  catch (e) { if (!db) showBoardError('Браузер не дал сохранить результат (приватное окно или запрет хранилища).'); }
+  renderBoard();
+  if (!db) return;
+  try { await db.collection('scores').add(rec); sharedFailed = false; showBoardError(''); renderBoard(); }
+  catch (e) {
+    sharedFailed = true; renderBoard();
+    console.error('Запись в общую таблицу не удалась:', e);
+    showBoardError(e && e.code === 'invalid_argument'
+      ? 'В общую таблицу у Вас нет права записи. Результат сохранён на этом устройстве.'
+      : 'Не удалось записать в общую таблицу. Результат сохранён на этом устройстве.');
+  }
+}
+
+(async () => {
+  if (!window.claude || !window.claude.use) return;   // открыто с диска — работаем на localStorage
+  const d = await window.claude.use('db');
+  if (!d) return;
+  db = d;
+  db.collection('scores').orderBy('doors', 'desc').limit(300).onSnapshot(
+    snap => { shared = snap.docs.map(x => x.data()); renderBoard(); },
+    err => { shared = null; console.error('Общая таблица недоступна:', err); showBoardError('Общая таблица сейчас недоступна. Показаны рекорды этого устройства.'); renderBoard(); }
+  );
+})();
+
+// ---------- ход игры ----------
+function showMsg(text, dur = 2.2) { msg = text; msgT = dur; }
+
+function startGame() {
+  if (state === 'play' || state === 'dying') return;
+  const name = $('player-name').value.trim() || 'Игрок';
+  $('player-name').value = name;
+  try { localStorage.setItem('k50.name', name); localStorage.setItem('k50.device', device); } catch (e) {}
+  audioInit();
+  genRooms();
+  room = 0; px = 200; face = 1; hidden = false; walkT = 0; elapsed = 0;
+  doorOpen = false; doorAnim = 0; warn = null; monster = null; lit = 1; fake = 0; shake = 0;
+  keys.left = keys.right = false;
+  $('overlay').hidden = true;
+  $('player-name').blur();
+  state = 'play';
+  play('droneStart');
+  showMsg(device === 'phone' ? 'Держите ▶, чтобы идти' : 'Идите к двери →', 2.5);
+  if (device === 'phone') document.querySelector('.game').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function action() {
+  if (state !== 'play') return;
+  const R = rooms[room];
+  if (hidden) { hidden = false; play('wardrobe'); return; }
+  if (Math.abs(px - R.wx) < 75) { hidden = true; play('wardrobe'); return; }
+  if (!doorOpen && px >= doorX(room) - 120) {
+    if (warn) { showMsg('Дверь не поддаётся! В шкаф!', 1.2); play('locked'); return; }
+    doorOpen = true; play('door');
+  }
+}
+
+function die() {
+  state = 'dying'; deathT = 0;
+  play('stopWarn'); play('droneStop'); play('death');
+}
+
+function endGame(won) {
+  state = 'over'; monster = null; warn = null; hidden = false;
+  play('stopWarn'); play('droneStop');
+  if (won) play('win');
+  const rec = { name: $('player-name').value.trim() || 'Игрок', doors: room, time: Math.round(elapsed * 10) / 10, at: Date.now(), device };
+  saveScore(rec);
+  const t = $('ov-title');
+  t.textContent = won ? 'Вы выбрались!' : 'Монстр вас настиг';
+  t.className = won ? 'win' : 'lose';
+  $('ov-text').textContent = won
+    ? `Все ${DOORS} дверей пройдены за ${fmtTime(elapsed)}. Результат записан в таблицу рекордов.`
+    : `Пройдено дверей: ${room} из ${DOORS}, время ${fmtTime(elapsed)}. Результат записан в таблицу рекордов.`;
+  $('ov-note').textContent = 'Сыграйте ещё раз и попробуйте пройти дальше.';
+  $('btn-start').textContent = 'Сыграть ещё';
+  $('overlay').hidden = false;
+  $('btn-start').focus({ preventScroll: true });
+}
+
+function update(dt) {
+  if (msgT > 0) msgT -= dt;
+  shake = Math.max(0, shake - dt * 2);
+  if (state === 'dying') { deathT += dt; if (deathT > 1.4) endGame(false); return; }
+  if (state !== 'play') return;
+  elapsed += dt;
+  const R = rooms[room];
+
+  const dir = hidden ? 0 : (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+  if (dir) {
+    face = dir; px += dir * SPEED * dt; walkT += dt; stepT -= dt;
+    if (stepT <= 0) { play('step'); stepT = 0.32; }
+  } else walkT = 0;
+  const dx = doorX(room);
+  px = clamp(px, minX(room), doorOpen ? dx + 200 : dx - 60);
+  if (doorOpen) doorAnim = Math.min(1, doorAnim + dt * 3);
+
+  if (doorOpen && px > dx + 50) {                    // прошли дверь
+    room++; doorOpen = false; doorAnim = 0; play('slam');
+    if (room >= DOORS) { endGame(true); return; }
+    if (room % 10 === 0) showMsg(`Пройдено ${room} из ${DOORS}`);
+    return;
+  }
+
+  if (R.monster && !R.done && !warn && px >= R.trig) {
+    warn = { t: 0, dur: R.warnDur };
+    play('warnStart', R.warnDur);
+    showMsg('Свет мигает… Спрячьтесь в шкаф!', R.warnDur);
+  }
+  if (R.fakeX !== null && px >= R.fakeX) { R.fakeX = null; fake = 0.5; play('buzz'); }
+
+  if (warn) {
+    warn.t += dt; shake = Math.max(shake, 0.25 * warn.t / warn.dur);
+    if (warn.t >= warn.dur && !monster) { monster = { x: camX - 260 }; play('rush'); }
+  }
+  if (monster) {
+    const prev = monster.x;
+    monster.x += MONSTER_SPEED * dt; shake = 1;
+    if (!hidden && prev < px + 60 && monster.x > px - 60) { die(); return; }
+    if (monster.x > camX + W + 320) {
+      monster = null; warn = null; R.done = true; play('stopWarn');
+      showMsg(hidden ? 'Пронесло. Можно выходить' : 'Пронесло');
+    }
+  }
+
+  // свет: ровный, мигает перед монстром, гаснет пока он летит
+  litT -= dt; fake = Math.max(0, fake - dt);
+  if (monster) lit = 0.25;
+  else if (litT <= 0) {
+    litT = rand(0.04, 0.12);
+    const k = warn ? 0.2 + 0.55 * warn.t / warn.dur : fake > 0 ? 0.5 : 0;
+    lit = Math.random() < k ? rand(0.05, 0.3) : rand(0.9, 1);
+  }
+}
+
+// ---------- рисование ----------
+function drawDoor(k) {
+  const x = doorX(k), w = 110, h = 230, top = FLOOR - h;
+  const a = k === room ? doorAnim : 0;
+  ctx.fillStyle = '#2b2119'; ctx.fillRect(x - w / 2 - 12, top - 12, w + 24, h + 12);
+  ctx.fillStyle = '#030407'; ctx.fillRect(x - w / 2, top, w, h);
+  if (a > 0) {
+    const g = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+    g.addColorStop(0, 'rgba(184,147,58,0)'); g.addColorStop(1, `rgba(184,147,58,${0.25 * a})`);
+    ctx.fillStyle = g; ctx.fillRect(x - w / 2, top, w, h);
+  }
+  const pw = w * (1 - a * 0.82);
+  const g = ctx.createLinearGradient(x - w / 2, 0, x - w / 2 + pw, 0);
+  g.addColorStop(0, a ? '#2c1e15' : '#4c3425'); g.addColorStop(1, a ? '#1e140e' : '#3a281c');
+  ctx.fillStyle = g; ctx.fillRect(x - w / 2, top, pw, h);
+  if (pw > 30) {
+    ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 3;
+    ctx.strokeRect(x - w / 2 + pw * 0.14, top + 18, pw * 0.72, 80);
+    ctx.strokeRect(x - w / 2 + pw * 0.14, top + 118, pw * 0.72, 92);
+    ctx.fillStyle = '#b8933a'; ctx.beginPath(); ctx.arc(x - w / 2 + pw - 16, top + h * 0.55, 5, 0, 7); ctx.fill();
+  }
+  // табличка с номером
+  const last = k === DOORS - 1, label = last ? 'ВЫХОД' : String(k + 1).padStart(3, '0');
+  const col = last ? '#4a9e6a' : '#b8933a';
+  ctx.fillStyle = '#16100c'; ctx.fillRect(x - 38, top - 52, 76, 30);
+  ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.strokeRect(x - 38, top - 52, 76, 30);
+  ctx.save(); if (last) { ctx.shadowColor = col; ctx.shadowBlur = 14; }
+  ctx.fillStyle = col; ctx.font = '19px "PT Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, x, top - 36); ctx.restore();
+}
+
+function drawWardrobe(x, occupied, t) {
+  const w = 130, h = 250, top = FLOOR - h;
+  const g = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+  g.addColorStop(0, '#24180f'); g.addColorStop(0.5, '#3a2819'); g.addColorStop(1, '#22170f');
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fillRect(x - w / 2 + 8, top + 8, w, h - 8);
+  ctx.fillStyle = g; ctx.fillRect(x - w / 2, top, w, h);
+  ctx.fillStyle = '#4a3324'; ctx.fillRect(x - w / 2 - 8, top - 10, w + 16, 14);
+  ctx.fillStyle = '#120c08'; ctx.fillRect(x - 1, top + 10, 2, h - 30);
+  ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 3;
+  for (let y = top + 26; y < top + 120; y += 10) {
+    ctx.beginPath(); ctx.moveTo(x - w / 2 + 12, y); ctx.lineTo(x - 10, y); ctx.moveTo(x + 10, y); ctx.lineTo(x + w / 2 - 12, y); ctx.stroke();
+  }
+  ctx.strokeRect(x - w / 2 + 12, top + 140, w / 2 - 22, 84); ctx.strokeRect(x + 10, top + 140, w / 2 - 22, 84);
+  ctx.fillStyle = '#b8933a'; ctx.fillRect(x - 9, top + 128, 3, 14); ctx.fillRect(x + 6, top + 128, 3, 14);
+  if (occupied && Math.sin(t * 2.3) > -0.85) {      // глаза в щели шкафа
+    ctx.fillStyle = '#c8d3e0'; ctx.fillRect(x - 20, top + 66, 4, 3); ctx.fillRect(x - 8, top + 66, 4, 3);
+  }
+}
+
+function drawPlayer(x, t) {
+  const sw = walkT ? Math.sin(walkT * 11) * 0.5 : 0, bob = walkT ? -Math.abs(Math.sin(walkT * 11)) * 3 : 0;
+  ctx.save(); ctx.translate(x, FLOOR + bob); ctx.scale(face, 1);
+  // луч фонарика
+  const bg = ctx.createLinearGradient(20, 0, 260, 0);
+  bg.addColorStop(0, `rgba(230,200,120,${0.22 * lit})`); bg.addColorStop(1, 'rgba(230,200,120,0)');
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.moveTo(22, -62); ctx.lineTo(260, -130); ctx.lineTo(260, 10); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(0, 2, 22, 5, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#1b2230'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+  for (const s of [sw, -sw]) { ctx.save(); ctx.translate(0, -36); ctx.rotate(s); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 32); ctx.stroke(); ctx.restore(); }
+  ctx.fillStyle = '#4a7eaa'; ctx.beginPath(); ctx.roundRect(-14, -82, 28, 48, 8); ctx.fill();
+  ctx.fillStyle = '#3c6990'; ctx.beginPath(); ctx.arc(0, -84, 15, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#e0c4a8'; ctx.beginPath(); ctx.arc(2, -94, 11, 0, 7); ctx.fill();
+  ctx.fillStyle = '#2a1e17'; ctx.beginPath(); ctx.arc(1, -98, 11, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+  ctx.fillStyle = '#080c14'; ctx.fillRect(7, -96, 3, 3);
+  ctx.strokeStyle = '#3c6990'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(2, -70); ctx.lineTo(18, -62); ctx.stroke();
+  ctx.fillStyle = '#c8d3e0'; ctx.fillRect(16, -66, 10, 6);
+  ctx.restore();
+}
+
+function drawMonster(x, y, s, t) {
+  for (let i = 14; i > 0; i--) {                     // дымный хвост
+    ctx.fillStyle = `rgba(12,8,22,${0.75 - i * 0.045})`;
+    ctx.beginPath(); ctx.arc(x - i * 30 * s, y + Math.sin(t * 18 + i) * 10 * s, (95 - i * 4.5) * s, 0, 7); ctx.fill();
+  }
+  ctx.beginPath();
+  for (let i = 0; i <= 28; i++) {
+    const a = i / 28 * Math.PI * 2, r = (95 + (i % 2 ? 28 : 0) + Math.sin(t * 25 + i * 1.7) * 10) * s;
+    ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+  }
+  const g = ctx.createRadialGradient(x, y, 10 * s, x, y, 120 * s);
+  g.addColorStop(0, '#2c2148'); g.addColorStop(1, '#06040c');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.save(); ctx.shadowColor = '#b85555'; ctx.shadowBlur = 30 * s; ctx.fillStyle = '#e06a6a';
+  for (const ex of [-22, 30]) { ctx.beginPath(); ctx.ellipse(x + ex * s, y - 22 * s, 13 * s, 8 * s, ex < 0 ? 0.3 : -0.3, 0, 7); ctx.fill(); }
+  ctx.restore();
+  ctx.fillStyle = '#020104'; ctx.beginPath(); ctx.ellipse(x + 4 * s, y + 30 * s, 50 * s, 22 * s, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#c8d3e0'; ctx.beginPath();
+  for (let i = 0; i < 9; i++) { const tx = x + (-42 + i * 10.5) * s; ctx.moveTo(tx, y + 14 * s); ctx.lineTo(tx + 5 * s, y + 27 * s); ctx.lineTo(tx + 10 * s, y + 14 * s); }
+  ctx.fill();
+}
+
+function label(text, x, y, color = '#c8d3e0', size = 17) {
+  if (device === 'phone') size *= 1.7;               // на маленьком экране холст сжат втрое
+  ctx.font = `600 ${size}px "Golos Text", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const w = ctx.measureText(text).width + 28;
+  ctx.fillStyle = 'rgba(8,12,20,.8)'; ctx.beginPath(); ctx.roundRect(x - w / 2, y - size, w, size * 2, size); ctx.fill();
+  ctx.fillStyle = color; ctx.fillText(text, x, y + 1);
+}
+
+function draw() {
+  const t = performance.now() / 1000;
+  camX = Math.max(0, px - 360);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.save();
+  if (shake) ctx.translate((Math.random() - 0.5) * shake * 14, (Math.random() - 0.5) * shake * 8);
+
+  const wg = ctx.createLinearGradient(0, 0, 0, FLOOR);
+  wg.addColorStop(0, '#0a101c'); wg.addColorStop(1, '#151d2d');
+  ctx.fillStyle = wg; ctx.fillRect(-20, -20, W + 40, FLOOR + 20);
+
+  ctx.save(); ctx.translate(-camX, 0);
+  const x0 = Math.floor(camX / 48) * 48;
+  for (let x = x0; x < camX + W + 48; x += 48) {     // обои
+    ctx.fillStyle = 'rgba(122,103,184,.07)'; ctx.fillRect(x, 0, 14, 326);
+    ctx.fillStyle = 'rgba(200,211,224,.05)';
+    for (let y = 40 + ((x / 48) % 2) * 28; y < 310; y += 56) { ctx.beginPath(); ctx.moveTo(x + 31, y - 6); ctx.lineTo(x + 37, y); ctx.lineTo(x + 31, y + 6); ctx.lineTo(x + 25, y); ctx.fill(); }
+  }
+  ctx.fillStyle = '#0f1522'; ctx.fillRect(camX - 20, 330, W + 40, FLOOR - 330);
+  ctx.fillStyle = '#263044'; ctx.fillRect(camX - 20, 326, W + 40, 6);
+  ctx.strokeStyle = 'rgba(200,211,224,.05)'; ctx.lineWidth = 2;
+  for (let x = Math.floor(camX / 120) * 120; x < camX + W + 120; x += 120) ctx.strokeRect(x + 12, 346, 96, 80);
+  const fg = ctx.createLinearGradient(0, FLOOR, 0, H);
+  fg.addColorStop(0, '#2a1e17'); fg.addColorStop(1, '#100b08');
+  ctx.fillStyle = fg; ctx.fillRect(camX - 20, FLOOR, W + 40, H - FLOOR + 20);
+  ctx.fillStyle = '#4a2328'; ctx.fillRect(camX - 20, FLOOR + 22, W + 40, 62);  // ковровая дорожка
+  ctx.fillStyle = 'rgba(184,147,58,.35)'; ctx.fillRect(camX - 20, FLOOR + 27, W + 40, 2); ctx.fillRect(camX - 20, FLOOR + 77, W + 40, 2);
+  ctx.fillStyle = '#1a1310'; ctx.fillRect(camX - 20, FLOOR - 8, W + 40, 10);
+
+  for (let lx = Math.floor(camX / 330) * 330 + 165; lx < camX + W + 330; lx += 330) {  // бра
+    if (Math.abs(((lx + 80) % ROOM_W) - 0) < 100 || Math.abs(((lx + 80) % ROOM_W) - ROOM_W) < 100) continue;
+    const rg = ctx.createRadialGradient(lx, 170, 4, lx, 170, 240);
+    rg.addColorStop(0, `rgba(214,170,80,${0.32 * lit})`); rg.addColorStop(1, 'rgba(214,170,80,0)');
+    ctx.fillStyle = rg; ctx.fillRect(lx - 240, -70, 480, 480);
+    ctx.fillStyle = '#3a2c1c'; ctx.fillRect(lx - 3, 176, 6, 22);
+    ctx.fillStyle = `rgba(235,200,120,${0.25 + 0.75 * lit})`; ctx.beginPath(); ctx.moveTo(lx - 16, 176); ctx.lineTo(lx + 16, 176); ctx.lineTo(lx + 9, 150); ctx.lineTo(lx - 9, 150); ctx.fill();
+  }
+
+  for (let k = Math.max(0, room - 1); k <= Math.min(DOORS - 1, room + 1); k++) drawDoor(k);
+  for (let k = Math.max(0, room - 1); k <= Math.min(DOORS - 1, room + 1); k++) drawWardrobe(rooms[k].wx, k === room && hidden, t);
+  if (!hidden) drawPlayer(px, t);
+  if (monster) drawMonster(monster.x, 250, 1, t);
+  ctx.restore();
+
+  const psx = px - camX;
+  const vg = ctx.createRadialGradient(psx, 320, 90, psx, 320, 640);
+  vg.addColorStop(0, 'rgba(3,5,9,0)'); vg.addColorStop(1, 'rgba(3,5,9,.88)');
+  ctx.fillStyle = vg; ctx.fillRect(-20, -20, W + 40, H + 40);
+  ctx.fillStyle = `rgba(2,3,6,${(1 - lit) * 0.7})`; ctx.fillRect(-20, -20, W + 40, H + 40);
+  if (warn) {
+    const k = warn.t / warn.dur;
+    ctx.fillStyle = `rgba(184,85,85,${0.06 + 0.16 * k * (0.5 + 0.5 * Math.sin(t * 12))})`; ctx.fillRect(-20, -20, W + 40, H + 40);
+  }
+  ctx.restore();
+
+  if (hidden) {                                      // вид из шкафа сквозь щели
+    for (let y = 0; y < H; y += 36) {
+      const sg = ctx.createLinearGradient(0, y, 0, y + 28);
+      sg.addColorStop(0, '#1a120c'); sg.addColorStop(1, '#0a0705');
+      ctx.fillStyle = sg; ctx.fillRect(0, y, W, 28);
+    }
+    ctx.fillStyle = '#060403'; ctx.fillRect(0, 0, 70, H); ctx.fillRect(W - 70, 0, 70, H); ctx.fillRect(W / 2 - 6, 0, 12, H);
+  }
+
+  if (state === 'play') {
+    const R = rooms[room];
+    let hint = '';
+    if (hidden) hint = 'выйти из шкафа';
+    else if (Math.abs(px - R.wx) < 75) hint = 'спрятаться в шкаф';
+    else if (!doorOpen && px >= doorX(room) - 120) hint = 'открыть дверь';
+    if (hint) label(device === 'phone' ? 'Нажмите «' + hint + '»' : 'У — ' + hint, W / 2, device === 'phone' ? H - 46 : H - 34);
+    actLabel(hint || 'действие');
+  }
+  if (msgT > 0) {
+    ctx.globalAlpha = Math.min(1, msgT * 2);
+    label(msg, W / 2, 64, warn ? '#e08a8a' : '#c8d3e0', 22);
+    ctx.globalAlpha = 1;
+  }
+  if (state === 'dying') {                           // скример
+    ctx.fillStyle = `rgba(0,0,0,${Math.min(0.9, deathT * 3)})`; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.translate((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20);
+    drawMonster(W / 2 + 60, H / 2, 2.4 + deathT * 1.6, t); ctx.restore();
+    if (Math.sin(t * 40) > 0.3) { ctx.fillStyle = 'rgba(184,85,85,.25)'; ctx.fillRect(0, 0, W, H); }
+  }
+}
+
+// ---------- интерфейс ----------
+let shownDoors = -1, shownTime = '', shownAct = '';
+function actLabel(text) {
+  const s = text.charAt(0).toUpperCase() + text.slice(1);
+  if (s !== shownAct) { shownAct = s; $('btn-act').textContent = s; }
+}
+function hud() {
+  if (room !== shownDoors) { shownDoors = room; $('hud-doors').textContent = `${room} / ${DOORS}`; $('hud-bar').style.width = (room / DOORS * 100) + '%'; }
+  const tt = fmtTime(elapsed); if (tt !== shownTime) { shownTime = tt; $('hud-time').textContent = tt; }
+}
+
+let lastFrame = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);                      // первым делом: сбой кадра не должен остановить игру
+  const dt = Math.min(0.05, (now - lastFrame) / 1000); lastFrame = now;
+  update(dt); draw(); hud();
+}
+
+const KEY_LEFT = ['ArrowLeft', 'KeyA'], KEY_RIGHT = ['ArrowRight', 'KeyD'], KEY_ACT = ['KeyE', 'Space', 'ArrowUp', 'KeyW'];
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') { if (e.key === 'Enter' && state !== 'play' && state !== 'dying') startGame(); return; }
+  if (state !== 'play') return;
+  if (KEY_LEFT.includes(e.code)) keys.left = true;
+  else if (KEY_RIGHT.includes(e.code)) keys.right = true;
+  else if (KEY_ACT.includes(e.code)) { if (!e.repeat) action(); }
+  else return;
+  e.preventDefault();
+});
+addEventListener('keyup', e => {
+  if (KEY_LEFT.includes(e.code)) keys.left = false;
+  if (KEY_RIGHT.includes(e.code)) keys.right = false;
+});
+addEventListener('blur', () => { keys.left = keys.right = false; });
+
+function hold(id, key) {
+  const b = $(id), on = e => { e.preventDefault(); keys[key] = true; }, off = () => { keys[key] = false; };
+  b.addEventListener('pointerdown', on);
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, off));
+}
+hold('btn-left', 'left'); hold('btn-right', 'right');
+$('btn-act').addEventListener('pointerdown', e => { e.preventDefault(); action(); });
+document.querySelector('.touch').addEventListener('contextmenu', e => e.preventDefault());  // долгое нажатие не открывает меню
+document.querySelectorAll('input[name="device"]').forEach(r => r.addEventListener('change', () => setDevice(r.value)));
+$('btn-start').addEventListener('click', startGame);
+
+function soundLabel() { $('btn-sound').textContent = muted ? 'Звук: выкл' : 'Звук: вкл'; }
+$('btn-sound').addEventListener('click', () => {
+  muted = !muted; soundLabel();
+  try { localStorage.setItem('k50.muted', muted ? '1' : '0'); } catch (e) {}
+  if (master) master.gain.value = muted ? 0 : 0.8;
+  $('btn-sound').blur();
+});
+
+try { $('player-name').value = localStorage.getItem('k50.name') || ''; } catch (e) {}
+let savedDevice = null;
+try { savedDevice = localStorage.getItem('k50.device'); } catch (e) {}
+setDevice(DEVICE_NAMES[savedDevice] ? savedDevice : matchMedia('(pointer: coarse)').matches ? 'phone' : 'pc');
+soundLabel();
+genRooms();
+renderBoard();
+requestAnimationFrame(frame);
+</script>
